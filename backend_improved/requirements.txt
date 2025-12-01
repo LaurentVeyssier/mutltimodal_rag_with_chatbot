@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+chromadb
+pymupdf
+sentence-transformers
+pillow
+torch
+numpy
+google-generativeai
+python-dotenv
+fastmcp
+gradio

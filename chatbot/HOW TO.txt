@@ -1,0 +1,8 @@
+app --> gradio chatbot to discuss with Manrique
+this uses the "retrieve" method to search the vectordb using MCP server
+
+to launch the app: MAKE SURE TO RUN FROM OUTSIDE THE chatbot FOLDER
+activate the venv (pip not uv venv) so 
+.venv/Scripts/activate in the terminal
+then "python chatbot/app.py"
+the MCP will return no search results if run from teh chatbot folder (relative path issue)

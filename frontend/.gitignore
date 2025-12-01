@@ -1,19 +1,5 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Virtual environments
-.venv
-
-
-# secrets
-.env
-
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files
 # dependencies
 /node_modules
 /.pnp
@@ -53,13 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Vector DB
-chroma_db/
-test_chroma_db/
-test_chroma_db_prompt/
-
-# Test artifacts
-test_backend.py
-sample_test.pdf
-create_pdf.py

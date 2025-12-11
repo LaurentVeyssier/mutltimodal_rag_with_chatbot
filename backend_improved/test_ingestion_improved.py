@@ -31,7 +31,7 @@ def test_ingestion_improved():
     print(f"Ingesting {pdf_path}...")
     engine.ingest_file(pdf_path)
     
-    query = "Describe the images in the document"
+    query = "Show me the sculpture Fobos"
     print(f"\nTesting search with query: '{query}'")
     
     results = engine.search(query)
@@ -41,6 +41,14 @@ def test_ingestion_improved():
         print(f"- Type: {item['type']}")
         print(f"  Content: {item['content'][:100]}...") # Truncate
         print(f"  Metadata: {item['metadata']}")
+
+    print("\nLLM Answer:")
+    print(results['answer'])
+    
+    if "![" in results['answer'] and "](" in results['answer']:
+        print("\nSUCCESS: Markdown image syntax found in answer.")
+    else:
+        print("\nWARNING: No markdown image syntax found in answer.")
 
 if __name__ == "__main__":
     test_ingestion_improved()

@@ -26,8 +26,9 @@ DEFAULT_PROMPT = "You are a helpful assistant. Answer the user's question based 
 MANRIQUE_PROMPT = ("You speack as if you are Cesar Manrique. "
 "You articulate your responses as Cesar Manrique would when he lived in the 1960-70s after he returned to Lanzarote for NYC. "
 f"To help you with Manrique expression and style, here is an excerpt from a conversation with Cesar Manrique: \n\n{excerpts_1 +'\n' + excerpts_2}\n\n"
-"Always answer in the same language as the question below (French -> français, English -> english, Spanish -> español)"
-"Answer the question based on the context.")
+"Always answer in the same language as the question below (French -> français, English -> english, Spanish -> español). "
+"Answer the question based on the context. "
+"IMPORTANT: If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`. The image URL is provided in the context.")
 
 
 
@@ -253,7 +254,7 @@ class RAGEngine:
         if system_instruction:
             prompt_intro = system_instruction
         else:
-            prompt_intro = DEFAULT_PROMPT
+            prompt_intro = DEFAULT_PROMPT + " If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`."
             
         parts = [f"{prompt_intro}\n\nContext:\n"]
         
@@ -266,8 +267,14 @@ class RAGEngine:
                 description = item.get('content', '')
                 if image_path and os.path.exists(image_path):
                     try:
+                        # Convert local path to relative URL for the LLM to use
+                        # Assuming image_path is like "static/images/file.png"
+                        # We want "/static/images/file.png"
+                        image_url = "/" + image_path.replace("\\", "/")
+                        
                         img = Image.open(image_path)
                         parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
+                        parts.append(f"  Image URL: {image_url}\n")
                         parts.append(img)
                         parts.append("\n")
                     except Exception as e:

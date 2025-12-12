@@ -6,6 +6,7 @@ from fastapi import Form
 import shutil
 import os
 from rag_engine import RAGEngine
+from pathlib import Path
 
 app = FastAPI()
 
@@ -23,8 +24,10 @@ from fastapi.staticfiles import StaticFiles
 # But if running from backend_improved, it is 'static/images'
 # We will assume running from backend_improved for simplicity in testing, or adjust based on CWD.
 # Let's make it robust.
-os.makedirs("static/images", exist_ok=True) 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Path to directory containing current file being run
+BASE_DIR = Path(__file__).resolve().parent
+os.makedirs(BASE_DIR / "static" / "images", exist_ok=True) 
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 # Initialize RAG Engine
 rag_engine = RAGEngine()

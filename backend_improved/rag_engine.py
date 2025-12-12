@@ -9,6 +9,7 @@ import os
 import requests
 import json
 import re
+from pathlib import Path
 from typing import List, Dict, Any
 from rich.console import Console
 from rich.markdown import Markdown
@@ -30,10 +31,11 @@ f"To help you with Manrique expression and style, here is an excerpt from a conv
 "Answer the question based on the context. "
 "IMPORTANT: If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`. The image URL is provided in the context.")
 
-
+# Path to directory containing current file being run
+BASE_DIR = Path(__file__).resolve().parent
 
 class RAGEngine:
-    def __init__(self, db_path="./chroma_db_improved", use_stderr=False):
+    def __init__(self, db_path= BASE_DIR / "chroma_db_improved", use_stderr=False):
         self.console = Console(stderr=use_stderr)
         self.client = chromadb.PersistentClient(path=db_path)
         self.collections = {}
@@ -49,7 +51,7 @@ class RAGEngine:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
         else:
             genai.configure(api_key=api_key)
-            self.llm = genai.GenerativeModel('gemini-2.0-flash')
+            self.llm = genai.GenerativeModel('gemini-2.5-flash')
 
     def _get_collection(self, name: str):
         if name not in self.collections:
@@ -263,18 +265,17 @@ class RAGEngine:
                 parts.append(f"- {item['content']}\n")
             elif item['type'] == 'image':
                 # Load the image from the path
-                image_path = item['metadata'].get('image_path')
+                image_path = item['metadata'].get('image_path').replace("\\", "/")
                 description = item.get('content', '')
-                if image_path and os.path.exists(image_path):
+                if image_path and os.path.exists(BASE_DIR / image_path):
                     try:
                         # Convert local path to relative URL for the LLM to use
                         # Assuming image_path is like "static/images/file.png"
-                        # We want "/static/images/file.png"
-                        image_url = "/" + image_path.replace("\\", "/")
-                        
-                        img = Image.open(image_path)
+                        # We want to return path like "/static/images/file.png"                   
+                        image_url = BASE_DIR / image_path          
+                        img = Image.open(image_url)
                         parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
-                        parts.append(f"  Image URL: {image_url}\n")
+                        parts.append(f"  Image URL: /{image_path}\n")
                         parts.append(img)
                         parts.append("\n")
                     except Exception as e:

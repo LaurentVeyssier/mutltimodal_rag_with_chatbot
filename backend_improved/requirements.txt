@@ -3,9 +3,9 @@ uvicorn
 python-multipart
 chromadb
 pymupdf
-sentence-transformers
+#sentence-transformers
 pillow
-torch
+#torch
 numpy
 google-generativeai
 python-dotenv

@@ -35,6 +35,7 @@ rag_engine = RAGEngine()
 class QueryRequest(BaseModel):
     query: str
     topic: Optional[str] = "manrique"
+    history: Optional[List[dict]] = []
 
 class QueryResponse(BaseModel):
     answer: str
@@ -60,7 +61,7 @@ async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique"
 @app.post("/chat", response_model=QueryResponse)
 async def chat(request: QueryRequest):
     try:
-        response = rag_engine.search(request.query, topic=request.topic)
+        response = rag_engine.search(request.query, topic=request.topic, history=request.history)
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

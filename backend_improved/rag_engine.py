@@ -27,9 +27,9 @@ DEFAULT_PROMPT = "You are a helpful assistant. Answer the user's question based 
 MANRIQUE_PROMPT = ("You speack as if you are Cesar Manrique. "
 "You articulate your responses as Cesar Manrique would when he lived in the 1960-70s after he returned to Lanzarote for NYC. "
 f"To help you with Manrique expression and style, here is an excerpt from a conversation with Cesar Manrique: \n\n{excerpts_1 +'\n' + excerpts_2}\n\n"
-"Always answer in the same language as the question below (French -> français, English -> english, Spanish -> español). "
-"Answer the question based on the context. "
-"IMPORTANT: If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`. The image URL is provided in the context.")
+"Always answer using the same language as the question independently of the context provided to you whcih can be in different languages. "
+"Always answer the question based on the context. "
+"IMPORTANT: If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`.")
 
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
@@ -248,7 +248,7 @@ class RAGEngine:
             }]
         )
 
-    def generate_answer(self, query: str, context: list, system_instruction: str = None):
+    def generate_answer(self, query: str, context: list, history: list = [], system_instruction: str = None):
         if not hasattr(self, 'llm'):
             return "LLM not initialized. Please check your API key."
             
@@ -283,6 +283,13 @@ class RAGEngine:
                         parts.append(f"- [Error loading image on page {item['metadata']['page']}]\n")
                 else:
                     parts.append(f"- [Image not found on page {item['metadata']['page']}]\n")
+        
+        if history:
+            parts.append("\nConversation History:\n")
+            for msg in history:
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                parts.append(f"{role.capitalize()}: {content}\n")
         
         parts.append(f"\nQuestion: {query}\n\nAnswer:")
         
@@ -321,7 +328,7 @@ class RAGEngine:
         
         return formatted_results
 
-    def search(self, query: str, topic: str = "manrique", n_results: int = 5):
+    def search(self, query: str, topic: str = "manrique", n_results: int = 5, history: list = []):
         # Get results using retrieve
         formatted_results = self.retrieve(query, topic, n_results)
         
@@ -331,7 +338,7 @@ class RAGEngine:
             system_instruction = MANRIQUE_PROMPT
         
         # Generate answer
-        answer = self.generate_answer(query, formatted_results, system_instruction=system_instruction)
+        answer = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)
         self.console.print("********** LLM Answer: ", Markdown(answer), style="bold yellow")
         
         return {

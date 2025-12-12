@@ -89,7 +89,12 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
         setLoading(true);
 
         try {
-            const data = await chat(userMessage.content, selectedTopic);
+            // Prepare history (all messages except the one we just added locally)
+            // We need to map them to the format expected by backend if necessary, 
+            // but the current Message interface {role, content} matches what we want.
+            const history = messages.map(m => ({ role: m.role, content: m.content }));
+
+            const data = await chat(userMessage.content, selectedTopic, history);
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: data.answer,
@@ -118,19 +123,19 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                                     {msg.role === 'assistant' && msg.results ? (
                                         <div className="space-y-4">
                                             <div className="prose dark:prose-invert text-sm max-w-none">
-                                                <ReactMarkdown 
+                                                <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
-                                                        img: ({node, ...props}) => {
+                                                        img: ({ node, ...props }) => {
                                                             let src = props.src;
                                                             if (src && src.startsWith('/static')) {
                                                                 src = `/api${src}`;
                                                             }
                                                             return (
-                                                                <img 
-                                                                    {...props} 
-                                                                    src={src} 
-                                                                    className="rounded-md max-h-80 w-auto object-contain bg-black/5 my-4 border border-border shadow-sm" 
+                                                                <img
+                                                                    {...props}
+                                                                    src={src}
+                                                                    className="rounded-md max-h-80 w-auto object-contain bg-black/5 my-4 border border-border shadow-sm"
                                                                 />
                                                             );
                                                         }

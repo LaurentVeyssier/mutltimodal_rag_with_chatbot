@@ -14,8 +14,8 @@ export const uploadFile = async (file: File, topic: string) => {
   return response.data;
 };
 
-export const chat = async (query: string, topic: string) => {
-  const response = await axios.post(`${API_URL}/chat`, { query, topic });
+export const chat = async (query: string, topic: string, history: any[] = []) => {
+  const response = await axios.post(`${API_URL}/chat`, { query, topic, history });
   return response.data;
 };
 

@@ -14,11 +14,16 @@ from typing import List, Dict, Any
 from rich.console import Console
 from rich.markdown import Markdown
 import google.generativeai as genai
+from langfuse import observe
 from manrique_excerpts import excerpts_1, excerpts_2
 from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("JINA_AI_API_TOKEN")
+
+# --------------- PHOENIX ------------------------
+# from observability import tracer_provider_phoenix
+# tracer = tracer_provider_phoenix.get_tracer(__name__)
 
 
 url = "https://api.jina.ai/v1/embeddings"
@@ -174,7 +179,8 @@ class RAGEngine:
         
         self.console.print(f"Ingestion complete: {text_pages_count} text pages and {len(extracted_images_info)} images processed.", style="bold green")
 
-
+    #@tracer.chain(name="get_embedding")
+    @observe(name="get_embedding")
     def _get_embedding(self, text: str = None, image: base64 = None):
         if text is None and image is None:
             raise ValueError("At least one of text or image must be provided")
@@ -248,6 +254,8 @@ class RAGEngine:
             }]
         )
 
+    #@tracer.chain(name="generate_answer")
+    @observe(name="generate_answer")
     def generate_answer(self, query: str, context: list, history: list = [], system_instruction: str = None):
         if not hasattr(self, 'llm'):
             return "LLM not initialized. Please check your API key."
@@ -299,6 +307,8 @@ class RAGEngine:
         except Exception as e:
             return f"Error generating answer: {e}"
 
+    #@tracer.chain(name="vector_search")
+    @observe(name="vector_search")
     def retrieve(self, query: str, topic: str = "manrique", n_results: int = 5):
         collection = self._get_collection(topic)
         query_embedding = self._get_embedding(text=query)

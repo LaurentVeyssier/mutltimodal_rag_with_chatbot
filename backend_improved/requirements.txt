@@ -7,7 +7,11 @@ pymupdf
 pillow
 #torch
 numpy
-google-generativeai
+google-generativeai   # DEPRECATED SDK - Use google-genai
 python-dotenv
 fastmcp
 gradio
+# observability
+logfire[fastapi,google-genai]
+arize-phoenix   # same as arize-phoenix-otel
+langfuse

@@ -5,10 +5,24 @@ from typing import List, Optional
 from fastapi import Form
 import shutil
 import os
+import logfire
+from langfuse import observe, get_client
 from rag_engine import RAGEngine
 from pathlib import Path
+from dotenv import load_dotenv
 
+load_dotenv()
 app = FastAPI()
+
+# OBSERVABILITY
+# --------------- LOGFIRE ------------------------
+# logfire.configure(token=os.getenv("LOGFIRE_TOKEN"))
+# logfire.instrument_fastapi(app)
+
+# --------------- PHOENIX ------------------------
+# from observability import tracer_provider_phoenix
+# tracer = tracer_provider_phoenix.get_tracer(__name__)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +73,8 @@ async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique"
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat", response_model=QueryResponse)
+#@tracer.chain(name="chat")
+@observe(name="chat")
 async def chat(request: QueryRequest):
     try:
         response = rag_engine.search(request.query, topic=request.topic, history=request.history)
@@ -66,7 +82,10 @@ async def chat(request: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/topics")
+#@tracer.chain(name="get_topics")
+@observe(name="get_topics")
 async def get_topics():
     try:
         topics = rag_engine.list_topics()

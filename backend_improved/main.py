@@ -7,7 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import Form
-from rag_engine import RAGEngine
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,6 +15,12 @@ app = FastAPI()
 # OBSERVABILITY
 # --------------- LANGFUSE ------------------------
 from langfuse import observe, get_client
+# Initialise Langfuse client and verify connectivity
+langfuse_client = get_client()
+assert langfuse_client.auth_check(), "Langfuse auth failed - check your keys ✋"
+# INTEGRATE with google gemini
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+GoogleGenAIInstrumentor().instrument()
 # --------------- LOGFIRE ------------------------
 # import logfire
 # logfire.configure(token=os.getenv("LOGFIRE_TOKEN"))
@@ -23,6 +28,8 @@ from langfuse import observe, get_client
 # --------------- PHOENIX ------------------------
 # from observability import tracer_provider_phoenix
 # tracer = tracer_provider_phoenix.get_tracer(__name__)
+
+from rag_engine import RAGEngine
 
 
 app.add_middleware(

@@ -12,11 +12,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 import fitz  # PyMuPDF
 import chromadb
-from google import genai
 
 from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
 from dotenv import load_dotenv
-
+load_dotenv()
 
 # --------------- LANGFUSE ------------------------
 from langfuse import observe
@@ -24,7 +23,7 @@ from langfuse import observe
 # from observability import tracer_provider_phoenix
 # tracer = tracer_provider_phoenix.get_tracer(__name__)
 
-load_dotenv()
+from google import genai
 EMBEDDING_API_KEY = os.getenv("JINA_AI_API_TOKEN")
 EMBEDDING_MODEL = os.getenv("JINA_AI_EMBEDDING_MODEL")
 EMBEDDING_URL = os.getenv("JINA_AI_EMBEDDING_URL")

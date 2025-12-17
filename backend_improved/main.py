@@ -45,7 +45,7 @@ app.add_middleware(
 # But if running from backend_improved, it is 'static/images'
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
-os.makedirs(BASE_DIR / "static" / "images", exist_ok=True) 
+# os.makedirs(BASE_DIR / "static" / "images", exist_ok=True) 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 # Initialize RAG Engine

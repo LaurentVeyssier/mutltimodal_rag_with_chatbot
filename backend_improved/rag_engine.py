@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 import fitz  # PyMuPDF
 import chromadb
+from google.cloud import storage
 
 from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
 from dotenv import load_dotenv
@@ -50,6 +51,23 @@ class RAGEngine:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
         else:
             self.llm = genai.Client(api_key=GEMINI_API_KEY)
+
+        # Initialize Google Cloud Storage
+        self.bucket_name = os.getenv("GCS_BUCKET_NAME")
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        if not self.bucket_name:
+            print("Warning: GCS_BUCKET_NAME not found. Image storage will fail.")
+            self.storage_client = None
+        else:
+            try:
+                if project_id:
+                    self.storage_client = storage.Client(project=project_id)
+                else:
+                    self.storage_client = storage.Client()
+                self.bucket = self.storage_client.bucket(self.bucket_name)
+            except Exception as e:
+                print(f"Failed to initialize GCS client: {e}")
+                self.storage_client = None
 
 
     def _get_collection(self, name: str):
@@ -218,12 +236,25 @@ class RAGEngine:
 
         doc_id = str(uuid.uuid4())
         
-        # Let's save image to a static folder
-        images_dir = "static/images"
-        os.makedirs(images_dir, exist_ok=True)
-        image_filename = f"{os.path.basename(file_path)}_{page_num}_{img_index}.png"
-        image_path = os.path.join(images_dir, image_filename)
-        image.save(image_path)
+        # Upload to GCS
+        image_url = ""
+        if self.storage_client and self.bucket:
+            try:
+                image_filename = f"{os.path.basename(file_path)}_{page_num}_{img_index}.png"
+                blob = self.bucket.blob(image_filename)
+                
+                img_byte_arr = io.BytesIO()
+                image.save(img_byte_arr, format='PNG')
+                img_byte_arr.seek(0)
+                
+                blob.upload_from_file(img_byte_arr, content_type='image/png')
+                image_url = blob.public_url
+            except Exception as e:
+                print(f"Error uploading to GCS: {e}")
+                # Fallback or just log? Assuming GCS is required now.
+        else:
+            print("GCS not configured, skipping image upload")
+            # You might want to handle this case, maybe fallback to local or skip
 
         # Use description for embedding
         embedding = self._get_embedding(text=description)
@@ -236,7 +267,7 @@ class RAGEngine:
                 "type": "image",
                 "source": file_path,
                 "page": page_num,
-                "image_path": image_path
+                "image_path": image_url # Store URL instead of local path
             }]
         )
 
@@ -258,25 +289,34 @@ class RAGEngine:
             if item['type'] == 'text':
                 parts.append(f"- {item['content']}\n")
             elif item['type'] == 'image':
-                # Load the image from the path
-                image_path = item['metadata'].get('image_path').replace("\\", "/")
+                # Load the image from the path (URL or local)
+                image_path = item['metadata'].get('image_path', '')
                 description = item.get('content', '')
-                if image_path and os.path.exists(BASE_DIR / image_path):
-                    try:
-                        # Convert local path to relative URL for the LLM to use
-                        # Assuming image_path is like "static/images/file.png"
-                        # We want to return path like "/static/images/file.png"                   
+                
+                img = None
+                try:
+                    if image_path.startswith("http"):
+                        # Handle URL
+                        response = requests.get(image_path, stream=True)
+                        response.raise_for_status()
+                        img = Image.open(response.raw)
+                        parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
+                        parts.append(f"  Image URL: {image_path}\n") # Return remote URL
+                        parts.append(img)
+                        parts.append("\n")
+                    elif image_path and os.path.exists(BASE_DIR / image_path):
+                        # Handle local path (backwards compatibility)
                         image_url = BASE_DIR / image_path          
                         img = Image.open(image_url)
                         parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
                         parts.append(f"  Image URL: /{image_path}\n")
                         parts.append(img)
                         parts.append("\n")
-                    except Exception as e:
-                        print(f"Error loading image {image_path}: {e}")
-                        parts.append(f"- [Error loading image on page {item['metadata']['page']}]\n")
-                else:
-                    parts.append(f"- [Image not found on page {item['metadata']['page']}]\n")
+                    else:
+                        parts.append(f"- [Image not found at {image_path} on page {item['metadata']['page']}]\n")
+                except Exception as e:
+                    print(f"Error loading image {image_path}: {e}")
+                    parts.append(f"- [Error loading image on page {item['metadata']['page']}]\n")
         
         if history:
             parts.append("\nConversation History:\n")

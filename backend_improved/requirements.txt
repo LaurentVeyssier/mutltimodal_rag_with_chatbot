@@ -14,3 +14,4 @@ logfire[fastapi,google-genai]
 arize-phoenix   # same as arize-phoenix-otel
 langfuse
 openinference-instrumentation-google-genai
+google-cloud-storage

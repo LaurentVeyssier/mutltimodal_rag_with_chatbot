@@ -3,11 +3,9 @@ uvicorn
 python-multipart
 chromadb
 pymupdf
-#sentence-transformers
 pillow
-#torch
 numpy
-google-generativeai   # DEPRECATED SDK - Use google-genai
+google-genai    # google-generativeai is DEPRECATED SDK - Use google-genai instead
 python-dotenv
 fastmcp
 gradio

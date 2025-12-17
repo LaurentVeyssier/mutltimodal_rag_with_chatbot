@@ -12,10 +12,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 import fitz  # PyMuPDF
 import chromadb
-import google.generativeai as genai
+from google import genai
 
 from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
 from dotenv import load_dotenv
+
 
 # --------------- LANGFUSE ------------------------
 from langfuse import observe
@@ -45,12 +46,12 @@ class RAGEngine:
 
         # Initialize Gemini
         GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-        MODEL_NAME = os.getenv("GEMINI_MODEL_NAME")
+        self.MODEL_NAME = os.getenv("GEMINI_MODEL_NAME")
         if not GEMINI_API_KEY:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
         else:
-            genai.configure(api_key=GEMINI_API_KEY)
-            self.llm = genai.GenerativeModel(MODEL_NAME)
+            self.llm = genai.Client(api_key=GEMINI_API_KEY)
+
 
     def _get_collection(self, name: str):
         if name not in self.collections:
@@ -77,7 +78,7 @@ class RAGEngine:
         content.extend(images)
 
         try:
-            response = self.llm.generate_content(content)
+            response = self.llm.models.generate_content(contents=content, model=self.MODEL_NAME)
             text = response.text.strip()
             # print(f"DEBUG: Raw LLM response: {text}")
 
@@ -288,7 +289,8 @@ class RAGEngine:
         parts.append(f"\nQuestion: {query}\n\nAnswer:")
         
         try:
-            response = self.llm.generate_content(parts)
+            #response = self.llm.generate_content(parts)
+            response = self.llm.models.generate_content(contents=parts, model=self.MODEL_NAME)
             return response.text
         except Exception as e:
             return f"Error generating answer: {e}"

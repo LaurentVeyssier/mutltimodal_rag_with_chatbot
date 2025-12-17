@@ -1,24 +1,25 @@
+import os
+import shutil
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import Form
-import shutil
-import os
-import logfire
-from langfuse import observe, get_client
 from rag_engine import RAGEngine
-from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 app = FastAPI()
 
 # OBSERVABILITY
+# --------------- LANGFUSE ------------------------
+from langfuse import observe, get_client
 # --------------- LOGFIRE ------------------------
+# import logfire
 # logfire.configure(token=os.getenv("LOGFIRE_TOKEN"))
 # logfire.instrument_fastapi(app)
-
 # --------------- PHOENIX ------------------------
 # from observability import tracer_provider_phoenix
 # tracer = tracer_provider_phoenix.get_tracer(__name__)
@@ -32,12 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.staticfiles import StaticFiles
 # Ensure the directory exists relative to where we run the script
 # If running from project root, this should be 'backend_improved/static/images'
 # But if running from backend_improved, it is 'static/images'
-# We will assume running from backend_improved for simplicity in testing, or adjust based on CWD.
-# Let's make it robust.
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
 os.makedirs(BASE_DIR / "static" / "images", exist_ok=True) 

@@ -1,40 +1,33 @@
-import fitz  # PyMuPDF
-import chromadb
-# from sentence_transformers import SentenceTransformer
-from PIL import Image
-import base64
 import io
-import uuid
 import os
-import requests
-import json
 import re
+import json
+import uuid
+import base64
+import requests
+from PIL import Image
 from pathlib import Path
 from typing import List, Dict, Any
 from rich.console import Console
 from rich.markdown import Markdown
+import fitz  # PyMuPDF
+import chromadb
 import google.generativeai as genai
-from langfuse import observe
-from manrique_excerpts import excerpts_1, excerpts_2
+
+from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
 from dotenv import load_dotenv
 
-load_dotenv()
-API_KEY = os.getenv("JINA_AI_API_TOKEN")
-
+# --------------- LANGFUSE ------------------------
+from langfuse import observe
 # --------------- PHOENIX ------------------------
 # from observability import tracer_provider_phoenix
 # tracer = tracer_provider_phoenix.get_tracer(__name__)
 
+load_dotenv()
+EMBEDDING_API_KEY = os.getenv("JINA_AI_API_TOKEN")
+EMBEDDING_MODEL = os.getenv("JINA_AI_EMBEDDING_MODEL")
+EMBEDDING_URL = os.getenv("JINA_AI_EMBEDDING_URL")
 
-url = "https://api.jina.ai/v1/embeddings"
-
-DEFAULT_PROMPT = "You are a helpful assistant. Answer the user's question based ONLY on the following context."
-MANRIQUE_PROMPT = ("You speack as if you are Cesar Manrique. "
-"You articulate your responses as Cesar Manrique would when he lived in the 1960-70s after he returned to Lanzarote for NYC. "
-f"To help you with Manrique expression and style, here is an excerpt from a conversation with Cesar Manrique: \n\n{excerpts_1 +'\n' + excerpts_2}\n\n"
-"Always answer using the same language as the question independently of the context provided to you whcih can be in different languages. "
-"Always answer the question based on the context. "
-"IMPORTANT: If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`.")
 
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
@@ -51,12 +44,13 @@ class RAGEngine:
         # we use jinaai v4 model for embeddings instead https://jina.ai/embeddings/
 
         # Initialize Gemini
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        MODEL_NAME = os.getenv("GEMINI_MODEL_NAME")
+        if not GEMINI_API_KEY:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
         else:
-            genai.configure(api_key=api_key)
-            self.llm = genai.GenerativeModel('gemini-2.5-flash')
+            genai.configure(api_key=GEMINI_API_KEY)
+            self.llm = genai.GenerativeModel(MODEL_NAME)
 
     def _get_collection(self, name: str):
         if name not in self.collections:
@@ -77,15 +71,7 @@ class RAGEngine:
             print("Warning: LLM not initialized. Skipping image description generation.")
             return ["Image description unavailable"] * len(images)
 
-        prompt = (
-            "You are given the pages of a document (Context) and a series of images extracted from it (Targets). "
-            "Your task is to provide a brief, descriptive summary for each Target image. "
-            "Use the Context pages to understand where the image appears and what it relates to (in situ analysis). "
-            "Return a JSON list of strings, where each string is the description for the corresponding Target image in the order provided. "
-            "Example output: [\"Description for image 1\", \"Description for image 2\"]"
-        )
-
-        content = [prompt, "Context Pages:"]
+        content = [IMAGE_INGESTION_PROMPT, "Context Pages:"]
         content.extend(context_pages)
         content.extend(["Target Images:"])
         content.extend(images)
@@ -188,7 +174,7 @@ class RAGEngine:
             raise ValueError("Only one of text or image can be provided")
         elif text is not None:
             payload = {
-                "model": "jina-embeddings-v4",
+                "model": EMBEDDING_MODEL,
                 "task": "text-matching",
                 "input": [
                     {"text": text},
@@ -196,7 +182,7 @@ class RAGEngine:
             }
         elif image is not None:
             payload = {
-                "model": "jina-embeddings-v4",
+                "model": EMBEDDING_MODEL,
                 "task": "text-matching",
                 "input": [
                     {"image": image},
@@ -204,10 +190,10 @@ class RAGEngine:
             }
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_KEY}"
+            "Authorization": f"Bearer {EMBEDDING_API_KEY}"
         }
 
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(EMBEDDING_URL, json=payload, headers=headers)
         response.raise_for_status()
         data = response.json()
         return data["data"][0]["embedding"]
@@ -264,7 +250,7 @@ class RAGEngine:
         if system_instruction:
             prompt_intro = system_instruction
         else:
-            prompt_intro = DEFAULT_PROMPT + " If you reference an image from the context, you MUST display it using markdown syntax: `![Description](image_url)`."
+            prompt_intro = DEFAULT_PROMPT
             
         parts = [f"{prompt_intro}\n\nContext:\n"]
         
@@ -321,6 +307,7 @@ class RAGEngine:
             n_results=n_results
         )
 
+        self.console.print("********** Query: ", query, style="bold yellow")
         self.console.print("********** VectorDB Results: ", results, style="bold yellow")
         
         # Format results

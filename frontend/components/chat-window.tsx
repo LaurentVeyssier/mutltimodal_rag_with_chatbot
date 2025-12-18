@@ -12,6 +12,20 @@ import { Send, Bot, User, ChevronDown, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const SUGGESTED_QUESTIONS = [
+    "Tell me about the Cesar Manrique fondation",
+    "Why did you come back from New-York City?",
+    "What influence did you have on Lanzarote?",
+    "What is your legacy?",
+    "What is mimesis?",
+    "Is Nature and the vegetation important in your work?",
+    "Tell me about the artwork you are the most proud of?",
+    "What do you narrate through your work?",
+    "Tell me about yourself",
+    "Why did you go to NYC?"
+];
+
+
 interface Message {
     role: 'user' | 'assistant';
     content: string;
@@ -72,7 +86,15 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Randomly select 3 questions on mount
+        const shuffled = [...SUGGESTED_QUESTIONS].sort(() => 0.5 - Math.random());
+        setSuggestedQuestions(shuffled.slice(0, 3));
+    }, []);
+
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -80,12 +102,14 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
         }
     }, [messages]);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    const handleSend = async (text?: string) => {
+        const content = text || input;
+        if (!content.trim()) return;
 
-        const userMessage: Message = { role: 'user', content: input };
+        const userMessage: Message = { role: 'user', content: content };
         setMessages(prev => [...prev, userMessage]);
-        setInput('');
+        if (!text) setInput(''); // Only clear input if typed
+
         setLoading(true);
 
         try {
@@ -113,6 +137,25 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
         <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px] border rounded-lg bg-background">
             <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
+                    {messages.length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4 mt-8 opacity-70">
+                            <Bot className="w-12 h-12 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground font-medium">Ask César anything...</p>
+                            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+                                {suggestedQuestions.map((q, i) => (
+                                    <Button
+                                        key={i}
+                                        variant="outline"
+                                        className="text-xs h-auto py-2 whitespace-normal text-left"
+                                        onClick={() => handleSend(q)}
+                                        disabled={loading}
+                                    >
+                                        {q}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {messages.map((msg, i) => (
                         <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                             <Avatar>
@@ -192,7 +235,7 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                         placeholder="Ask about your documents..."
                         className="min-h-[40px] max-h-[200px]"
                     />
-                    <Button onClick={handleSend} disabled={loading} className="h-10">
+                    <Button onClick={() => handleSend()} disabled={loading} className="h-10">
                         <Send className="w-4 h-4" />
                     </Button>
                 </div>

@@ -5,13 +5,16 @@ chromadb
 pymupdf
 pillow
 numpy
-google-genai    # google-generativeai is DEPRECATED SDK - Use google-genai instead
+google-genai    # google-generativeai SDK is DEPRECATED -> Use google-genai instead
 python-dotenv
 fastmcp
 gradio
 # observability
-logfire[fastapi,google-genai]
-arize-phoenix   # same as arize-phoenix-otel
+#logfire[fastapi,google-genai]
+#arize-phoenix
 langfuse
-openinference-instrumentation-google-genai
+openinference-instrumentation-google-genai  # langfuse integration with google-genai sdk
+# cloud migration
 google-cloud-storage
+pinecone
+#ipykernel

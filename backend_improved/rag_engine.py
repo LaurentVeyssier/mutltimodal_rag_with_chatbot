@@ -11,7 +11,8 @@ from typing import List, Dict, Any
 from rich.console import Console
 from rich.markdown import Markdown
 import fitz  # PyMuPDF
-import chromadb
+from pinecone import Pinecone
+
 from google.cloud import storage
 
 from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
@@ -29,17 +30,29 @@ EMBEDDING_API_KEY = os.getenv("JINA_AI_API_TOKEN")
 EMBEDDING_MODEL = os.getenv("JINA_AI_EMBEDDING_MODEL")
 EMBEDDING_URL = os.getenv("JINA_AI_EMBEDDING_URL")
 
+# Pinecone Configuration
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_INDEX_HOST = os.getenv("PINECONE_INDEX_HOST")
+
+
 
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
 
 class RAGEngine:
-    def __init__(self, db_path= BASE_DIR / "chroma_db_improved", use_stderr=False):
+    def __init__(self, use_stderr=False):
         self.console = Console(stderr=use_stderr)
-        self.client = chromadb.PersistentClient(path=db_path)
-        self.collections = {}
-        # Initialize default collection
-        self._get_collection("manrique")
+        
+        # Initialize Pinecone
+        if not PINECONE_API_KEY or not PINECONE_INDEX_HOST:
+             self.console.print("[bold red]Error: PINECONE_API_KEY or PINECONE_INDEX_HOST not set in environment variables.[/bold red]")
+             raise ValueError("Pinecone credentials missing")
+             
+        self.pc = Pinecone(api_key=PINECONE_API_KEY)
+        self.index = self.pc.Index(host=PINECONE_INDEX_HOST)
+        
+        # We no longer need to explicitly 'get_collection' as namespaces are created on the fly in Pinecone
+
         # Use CLIP for both text and image embeddings to have a shared vector space
         # self.model = SentenceTransformer('clip-ViT-B-32') # too weak no image in results
         # we use jinaai v4 model for embeddings instead https://jina.ai/embeddings/
@@ -70,13 +83,16 @@ class RAGEngine:
                 self.storage_client = None
 
 
-    def _get_collection(self, name: str):
-        if name not in self.collections:
-            self.collections[name] = self.client.get_or_create_collection(name=name)
-        return self.collections[name]
 
     def list_topics(self):
-        return [c.name for c in self.client.list_collections()]
+        try:
+            stats = self.index.describe_index_stats()
+            namespaces = list(stats.get('namespaces', {}).keys())
+            return namespaces if namespaces else ["manrique"] # Return default if empty
+        except Exception as e:
+            self.console.print(f"[red]Error listing topics: {e}[/red]")
+            return ["manrique"]
+
 
     def generate_image_descriptions(self, images: List[Image.Image], context_pages: List[Image.Image]) -> List[str]:
         """
@@ -132,7 +148,7 @@ class RAGEngine:
 
 
     def ingest_file(self, file_path: str, topic: str = "manrique"):
-        collection = self._get_collection(topic)
+        # collection = self._get_collection(topic) # Removed for Pinecone
         doc = fitz.open(file_path)
         text_pages_count = 0
         
@@ -145,7 +161,7 @@ class RAGEngine:
             # 1. Extract Text
             text = page.get_text()
             if text.strip():
-                self._add_text_to_db(text, file_path, page_num+1, collection)
+                self._add_text_to_db(text, file_path, page_num+1, topic)
                 text_pages_count += 1
             
             # 2. Render Page for Context
@@ -179,7 +195,7 @@ class RAGEngine:
             # 5. Add Images to DB
             for i, (image, page_num, img_index) in enumerate(extracted_images_info):
                 description = descriptions[i]
-                self._add_image_to_db(image, description, file_path, page_num, img_index, collection)
+                self._add_image_to_db(image, description, file_path, page_num, img_index, topic)
         
         self.console.print(f"Ingestion complete: {text_pages_count} text pages and {len(extracted_images_info)} images processed.", style="bold green")
 
@@ -216,22 +232,23 @@ class RAGEngine:
         data = response.json()
         return data["data"][0]["embedding"]
 
-    def _add_text_to_db(self, text: str, file_path: str, page_num: int, collection):
-        #embedding = self.model.encode(text).tolist()
+    def _add_text_to_db(self, text: str, file_path: str, page_num: int, namespace: str):
         embedding = self._get_embedding(text=text)
         doc_id = str(uuid.uuid4())
-        collection.add(
-            ids=[doc_id],
-            embeddings=[embedding],
-            documents=[text],
-            metadatas=[{
-                "type": "text",
-                "source": file_path,
-                "page": page_num
-            }]
+        
+        metadata = {
+            "type": "text",
+            "source": file_path,
+            "page": page_num,
+            "text": text # Storing text in metadata for retrieval
+        }
+        
+        self.index.upsert(
+            vectors=[(doc_id, embedding, metadata)],
+            namespace=namespace
         )
 
-    def _add_image_to_db(self, image: Image.Image, description: str, file_path: str, page_num: int, img_index: int, collection):
+    def _add_image_to_db(self, image: Image.Image, description: str, file_path: str, page_num: int, img_index: int, namespace: str):
         #embedding = self.model.encode(image).tolist()
 
         doc_id = str(uuid.uuid4())
@@ -240,7 +257,9 @@ class RAGEngine:
         image_url = ""
         if self.storage_client and self.bucket:
             try:
-                image_filename = f"{os.path.basename(file_path)}_{page_num}_{img_index}.png"
+                # Sanitize filename
+                filename_base = os.path.basename(file_path).replace(" ", "_")
+                image_filename = f"{filename_base}_{page_num}_{img_index}.png"
                 blob = self.bucket.blob(image_filename)
                 
                 img_byte_arr = io.BytesIO()
@@ -258,17 +277,19 @@ class RAGEngine:
 
         # Use description for embedding
         embedding = self._get_embedding(text=description)
+        
+        metadata = {
+            "type": "image",
+            "source": file_path,
+            "page": page_num,
+            "image_path": image_url,
+            "description": description, # Store description in metadata
+            "text": description # Store as text as well for uniform retrieval key if needed
+        }
 
-        collection.add(
-            ids=[doc_id],
-            embeddings=[embedding],
-            documents=[description], # Store description instead of placeholder
-            metadatas=[{
-                "type": "image",
-                "source": file_path,
-                "page": page_num,
-                "image_path": image_url # Store URL instead of local path
-            }]
+        self.index.upsert(
+            vectors=[(doc_id, embedding, metadata)],
+            namespace=namespace
         )
 
     #@tracer.chain(name="generate_answer")
@@ -337,30 +358,38 @@ class RAGEngine:
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
     def retrieve(self, query: str, topic: str = "manrique", n_results: int = 5):
-        collection = self._get_collection(topic)
         query_embedding = self._get_embedding(text=query)
 
         if topic.lower() == "manrique":
             n_results = 15
-
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results
-        )
+        
+        try:
+            results = self.index.query(
+                vector=query_embedding,
+                top_k=n_results,
+                include_metadata=True,
+                namespace=topic
+            )
+        except Exception as e:
+            self.console.print(f"[red]Error querying Pinecone: {e}[/red]")
+            return []
 
         self.console.print("********** Query: ", query, style="bold yellow")
-        self.console.print("********** VectorDB Results: ", results, style="bold yellow")
+        # self.console.print("********** VectorDB Results: ", results, style="bold yellow")
         
         # Format results
         formatted_results = []
-        if results["ids"]:
-            for i in range(len(results["ids"][0])):
+        if results and results.get("matches"):
+            for match in results["matches"]:
+                # Extract text content from metadata
+                content = match.metadata.get("text", "") or match.metadata.get("description", "")
+                
                 item = {
-                    "id": results["ids"][0][i],
-                    "score": results["distances"][0][i] if results["distances"] else None,
-                    "type": results["metadatas"][0][i].get("type"),
-                    "content": results["documents"][0][i],
-                    "metadata": results["metadatas"][0][i]
+                    "id": match.id,
+                    "score": match.score,
+                    "type": match.metadata.get("type"),
+                    "content": content,
+                    "metadata": match.metadata
                 }
                 formatted_results.append(item)
         

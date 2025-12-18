@@ -42,7 +42,7 @@ function SourcesSection({ results }: { results: any[] }) {
                                     <div className="space-y-2">
                                         <div className="font-semibold text-xs text-muted-foreground">Image (Page {result.metadata.page})</div>
                                         <img
-                                            src={`/api/${result.metadata.image_path}`}
+                                            src={result.metadata.image_path?.startsWith('http') ? result.metadata.image_path : `/api/${result.metadata.image_path}`}
                                             alt="Result"
                                             className="rounded-md max-h-48 object-contain bg-black/5"
                                         />

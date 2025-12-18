@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+# from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import Form
@@ -46,7 +46,7 @@ app.add_middleware(
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
 # os.makedirs(BASE_DIR / "static" / "images", exist_ok=True) 
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+# app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 # Initialize RAG Engine
 rag_engine = RAGEngine()

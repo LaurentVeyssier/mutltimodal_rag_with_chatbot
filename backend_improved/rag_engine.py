@@ -325,12 +325,6 @@ class RAGEngine:
                         parts.append(f"  Image URL: {image_path}\n") # Return remote URL
                         parts.append(img)
                         parts.append("\n")
-                    elif image_path and os.path.exists(BASE_DIR / image_path):
-                        # Handle local path (backwards compatibility)
-                        image_url = BASE_DIR / image_path          
-                        img = Image.open(image_url)
-                        parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
-                        parts.append(f"  Image URL: /{image_path}\n")
                         parts.append(img)
                         parts.append("\n")
                     else:
@@ -375,7 +369,7 @@ class RAGEngine:
             return []
 
         self.console.print("********** Query: ", query, style="bold yellow")
-        # self.console.print("********** VectorDB Results: ", results, style="bold yellow")
+        self.console.print("********** VectorDB Results: ", results, style="bold yellow")
         
         # Format results
         formatted_results = []

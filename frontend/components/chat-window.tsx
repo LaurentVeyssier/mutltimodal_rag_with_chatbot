@@ -13,16 +13,17 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
-    "Tell me about the Cesar Manrique fondation",
+    "Tell me about Cesar Manrique foundation",
     "Why did you come back from New-York City?",
     "What influence did you have on Lanzarote?",
+    "How Lanzarote influenced your work?",
     "What is your legacy?",
     "What is mimesis?",
     "Is Nature and the vegetation important in your work?",
     "Tell me about the artwork you are the most proud of?",
     "What do you narrate through your work?",
     "Tell me about yourself",
-    "Why did you go to NYC?"
+    "Why did you go to New-York City?"
 ];
 
 
@@ -134,9 +135,9 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px] border rounded-lg bg-background">
-            <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
+        <div className="flex flex-col h-full min-h-0 border-0 bg-transparent overflow-hidden relative">
+            <ScrollArea className="flex-1 h-full w-full p-4 min-h-0">
+                <div className="space-y-4 pb-4">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full space-y-4 mt-8 opacity-70">
                             <Bot className="w-12 h-12 text-muted-foreground" />

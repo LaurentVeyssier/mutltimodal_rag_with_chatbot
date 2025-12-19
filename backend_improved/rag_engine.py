@@ -38,6 +38,7 @@ PINECONE_INDEX_HOST = os.getenv("PINECONE_INDEX_HOST")
 
 # Path to directory containing current file being run
 BASE_DIR = Path(__file__).resolve().parent
+   
 
 class RAGEngine:
     def __init__(self, use_stderr=False):
@@ -60,6 +61,7 @@ class RAGEngine:
         # Initialize Gemini
         GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.MODEL_NAME = os.getenv("GEMINI_MODEL_NAME")
+        self.FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL_NAME")
         if not GEMINI_API_KEY:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
         else:
@@ -206,31 +208,38 @@ class RAGEngine:
             raise ValueError("At least one of text or image must be provided")
         elif text is not None and image is not None:
             raise ValueError("Only one of text or image can be provided")
-        elif text is not None:
+        if text is not None:
             payload = {
                 "model": EMBEDDING_MODEL,
                 "task": "text-matching",
-                "input": [
-                    {"text": text},
-                ]
+                "input": [{"text": text}]
             }
         elif image is not None:
             payload = {
                 "model": EMBEDDING_MODEL,
                 "task": "text-matching",
-                "input": [
-                    {"image": image},
-                ]
+                "input": [{"image": image}]
             }
+        
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {EMBEDDING_API_KEY}"
         }
 
-        response = requests.post(EMBEDDING_URL, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        return data["data"][0]["embedding"]
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(EMBEDDING_URL, json=payload, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                return data["data"][0]["embedding"]
+            except Exception as e:
+                self.console.print(f"[yellow]Warning: Embedding attempt {attempt + 1} failed: {e}[/yellow]")
+                if attempt == max_retries - 1:
+                    self.console.print(f"[red]Error getting embedding: {e}[/red]")
+                    raise e
+                time.sleep(1)
 
     def _add_text_to_db(self, text: str, file_path: str, page_num: int, namespace: str):
         embedding = self._get_embedding(text=text)
@@ -343,16 +352,28 @@ class RAGEngine:
         parts.append(f"\nQuestion: {query}\n\nAnswer:")
         
         try:
-            #response = self.llm.generate_content(parts)
             response = self.llm.models.generate_content(contents=parts, model=self.MODEL_NAME)
             return response.text
         except Exception as e:
+            if "overloaded" in str(e):
+                try:
+                    self.console.print("[red]Model is overloaded. Trying fallback model.[/red]")
+                    try:
+                        return self.llm.models.generate_content(contents=parts, model=self.FALLBACK_MODEL_NAME).text
+                    except:
+                        return self.llm.models.generate_content(contents=parts, model="gemini-2.0-flash").text
+                except Exception as e:
+                    return f"Error generating answer: {e}"
             return f"Error generating answer: {e}"
 
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
     def retrieve(self, query: str, topic: str = "manrique", n_results: int = 5):
-        query_embedding = self._get_embedding(text=query)
+        try:
+            query_embedding = self._get_embedding(text=query)
+        except Exception as e:
+            self.console.print(f"[red]Error generating query embedding: {e}[/red]")
+            return []
 
         if topic.lower() == "manrique":
             n_results = 15

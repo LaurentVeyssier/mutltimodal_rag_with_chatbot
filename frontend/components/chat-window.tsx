@@ -20,7 +20,7 @@ const SUGGESTED_QUESTIONS = [
     "How did New York influence your art?",
     "What do you consider to be your legacy?",
     "Tell me about mimesis?",
-    "Is nature and vegetation central to your work?",
+    "Are nature and vegetation central to your work?",
     "What artwork are you most proud of, and why?",
     "What do you narrate through your work?",
     "Tell me about yourself as an artist",
@@ -61,7 +61,11 @@ function SourcesSection({ results }: { results: any[] }) {
                                     <div className="space-y-2">
                                         <div className="font-semibold text-xs text-muted-foreground">Image (Page {result.metadata.page})</div>
                                         <img
-                                            src={result.metadata.image_path?.startsWith('http') ? result.metadata.image_path : `/api/${result.metadata.image_path}`}
+                                            src={(() => {
+                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+                                                const path = result.metadata.image_path;
+                                                return path?.startsWith('http') ? path : `${apiUrl}/${path}`;
+                                            })()}
                                             alt="Result"
                                             className="rounded-md max-h-48 object-contain bg-black/5"
                                         />
@@ -176,8 +180,9 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                                                     components={{
                                                         img: ({ node, ...props }) => {
                                                             let src = props.src;
-                                                            if (src && src.startsWith('/static')) {
-                                                                src = `/api${src}`;
+                                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+                                                            if (typeof src === 'string' && src.startsWith('/static')) {
+                                                                src = `${apiUrl}${src}`;
                                                             }
                                                             return (
                                                                 <img

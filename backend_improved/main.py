@@ -62,6 +62,8 @@ class QueryResponse(BaseModel):
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique")):
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     try:
         file_location = f"temp_{file.filename}"
         with open(file_location, "wb+") as file_object:

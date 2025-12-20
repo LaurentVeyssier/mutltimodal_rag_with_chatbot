@@ -24,7 +24,15 @@ export function FileUpload({ selectedTopic, onTopicChange, topics, onTopicCreate
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+            const selectedFile = e.target.files[0];
+            if (!selectedFile.name.toLowerCase().endsWith('.pdf')) {
+                setStatus('error');
+                setMessage('Please select a PDF file.');
+                setFile(null);
+                e.target.value = ''; // Reset input
+                return;
+            }
+            setFile(selectedFile);
             setStatus('idle');
             setMessage('');
         }
@@ -74,7 +82,7 @@ export function FileUpload({ selectedTopic, onTopicChange, topics, onTopicCreate
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Upload className="w-5 h-5" />
-                    Upload Document
+                    Upload pdf Document
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

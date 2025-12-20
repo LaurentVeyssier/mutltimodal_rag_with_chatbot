@@ -125,11 +125,16 @@ export function FileUpload({ selectedTopic, onTopicChange, topics, onTopicCreate
                 </div>
                 <Button
                     onClick={handleUpload}
-                    disabled={!file || uploading}
+                    disabled={!file || uploading || process.env.NEXT_PUBLIC_ALLOW_UPLOAD === 'false'}
                     className="w-full"
                 >
                     {uploading ? 'Uploading...' : 'Upload PDF'}
                 </Button>
+                {process.env.NEXT_PUBLIC_ALLOW_UPLOAD === 'false' && (
+                    <p className="text-xs text-center text-muted-foreground mt-2">
+                        Uploading is temporarily disabled for this preview.
+                    </p>
+                )}
                 {status === 'success' && (
                     <div className="flex items-center gap-2 text-green-600 text-sm">
                         <CheckCircle className="w-4 h-4" />

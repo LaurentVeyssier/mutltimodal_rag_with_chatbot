@@ -62,6 +62,10 @@ class QueryResponse(BaseModel):
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique")):
+    allow_upload = os.getenv("ALLOW_UPLOAD", "true").lower() == "true"
+    if not allow_upload:
+        raise HTTPException(status_code=403, detail="File uploading is temporarily disabled.")
+        
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     try:

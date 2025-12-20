@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { ChatWindow } from '@/components/chat-window';
 import { FileUpload } from '@/components/file-upload';
+import { Button } from '@/components/ui/button';
 import { getTopics } from '@/lib/api';
 
 export default function Home() {
   const [selectedTopic, setSelectedTopic] = useState<string>("manrique");
+  const [activeTab, setActiveTab] = useState<'chat' | 'explore'>('chat');
   const [topics, setTopics] = useState<string[]>([]);
 
   useEffect(() => {
@@ -81,42 +83,63 @@ export default function Home() {
               </h2>
               <p className="text-sm text-muted-foreground">Ask questions, upload documents, and discover.</p>
             </div>
-            {/* Topic Selector could be moved here or kept in fileupload/chat */}
+            
+            <div className="flex bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
+               <Button
+                 variant={activeTab === 'chat' ? 'secondary' : 'ghost'}
+                 size="sm"
+                 onClick={() => setActiveTab('chat')}
+                 className="text-sm font-medium transition-all"
+               >
+                 Chat
+               </Button>
+               <Button
+                 variant={activeTab === 'explore' ? 'secondary' : 'ghost'}
+                 size="sm"
+                 onClick={() => setActiveTab('explore')}
+                 className="text-sm font-medium transition-all"
+               >
+                 Explore
+               </Button>
+             </div>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 pb-2">
-            {/* Sidebar / Upload Area - Mobile: Collapsible or Top, Desktop: Left Col */}
-            <div className="lg:col-span-4 space-y-6 overflow-y-auto lg:overflow-visible pr-2 lg:pr-0">
-              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <FileUpload
-                  selectedTopic={selectedTopic}
-                  onTopicChange={setSelectedTopic}
-                  topics={topics}
-                  onTopicCreated={handleTopicCreated}
-                />
-              </div>
-
-              <div className="bg-secondary/5 rounded-2xl p-6 border border-secondary/10 hidden lg:block">
-                <h3 className="font-display text-lg text-secondary mb-2">Philosophy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Nature and art are not separate things. Manrique believed in organic architecture that respects the environment.
-                </p>
-              </div>
-            </div>
-
-            {/* Chat Area */}
-            <div className="lg:col-span-8 h-full min-h-0 flex flex-col">
-              <div className="flex-1 bg-card/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/10 pointer-events-none" />
-                <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <ChatWindow
+          <div className="flex-1 min-h-0 pb-2 flex flex-col">
+            {activeTab === 'explore' && (
+              <div className="space-y-6 overflow-y-auto pr-2 max-h-full animate-in fade-in zoom-in-95 duration-300">
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <FileUpload
                     selectedTopic={selectedTopic}
                     onTopicChange={setSelectedTopic}
                     topics={topics}
+                    onTopicCreated={handleTopicCreated}
                   />
                 </div>
+
+                <div className="bg-secondary/5 rounded-2xl p-6 border border-secondary/10">
+                  <h3 className="font-display text-lg text-secondary mb-2">Philosophy</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Nature and art are not separate things. Manrique believed in organic architecture that respects the environment.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Chat Area */}
+            {activeTab === 'chat' && (
+              <div className="h-full flex flex-col animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex-1 bg-card/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/10 pointer-events-none" />
+                    <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
+                      <ChatWindow
+                        selectedTopic={selectedTopic}
+                        onTopicChange={setSelectedTopic}
+                        topics={topics}
+                      />
+                    </div>
+                  </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,14 +1,14 @@
 fastapi
 uvicorn
 python-multipart
-chromadb
+#chromadb
 pymupdf
 pillow
-numpy
+#numpy
 google-genai    # google-generativeai SDK is DEPRECATED -> Use google-genai instead
 python-dotenv
 fastmcp
-gradio
+#gradio
 # observability
 #logfire[fastapi,google-genai]
 #arize-phoenix

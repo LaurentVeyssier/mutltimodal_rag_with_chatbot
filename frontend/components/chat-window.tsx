@@ -13,17 +13,21 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
-    "Tell me about Cesar Manrique foundation",
-    "Why did you come back from New-York City?",
+    "Tell me about Cesar Manrique Foundation",
+    "What led you to return from NYC to Lanzarote?",
     "What influence did you have on Lanzarote?",
-    "How Lanzarote influenced your work?",
-    "What is your legacy?",
-    "What is mimesis?",
-    "Is Nature and the vegetation important in your work?",
-    "Tell me about the artwork you are the most proud of?",
+    "How did Lanzarote influence your work?",
+    "How did New York influence your art?",
+    "What do you consider to be your legacy?",
+    "Tell me about mimesis?",
+    "Is nature and vegetation central to your work?",
+    "What artwork are you most proud of, and why?",
     "What do you narrate through your work?",
-    "Tell me about yourself",
-    "Why did you go to New-York City?"
+    "Tell me about yourself as an artist",
+    "Why did you decide to move to New York?",
+    "What do you communicate through your art?",
+    "How do art, architecture, and landscape coexist in your work?",
+    "Does art have a responsibility towards the environment?",
 ];
 
 

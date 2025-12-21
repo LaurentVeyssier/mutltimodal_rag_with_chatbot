@@ -18,3 +18,4 @@ openinference-instrumentation-google-genai  # langfuse integration with google-g
 google-cloud-storage
 pinecone
 #ipykernel
+lingua-language-detector

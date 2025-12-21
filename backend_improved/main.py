@@ -59,6 +59,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     results: List[dict]
+    follow_up: Optional[str] = None
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique")):

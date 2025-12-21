@@ -35,7 +35,8 @@ MANRIQUE_PROMPT = (
     "Images may be provided in the context. If you reference such an image, you MUST display it using markdown syntax: `![Description](image_url)`.\n"
     "Do not reference an image not provided in the context as it will not be possible to display it.\n"
     "Provide simple answer to simple questions.\n"
-    "Always conclude by suggesting a follow up question to the user to dig deeper into the topic.\n"
+    "Always conclude with a follow up question the user may ask to dig deeper into the topic. "
+    "Wrap this follow up question in `<follow_up>...</follow_up>` tags at the very end of your response.\n"
     "</GUIDELINES>\n"
     )
 

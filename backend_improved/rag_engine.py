@@ -354,22 +354,48 @@ class RAGEngine:
                 content = msg.get('content', '')
                 parts.append(f"{role.capitalize()}: {content}\n")
         
-        parts.append(f"\nQuestion: {query}\n\nAnswer:")
+        parts.append(f"\nQuestion: {query}")
         
         try:
             response = self.llm.models.generate_content(contents=parts, model=self.MODEL_NAME)
-            return response.text
+            text = response.text
+            
+            # Extract follow-up question
+            follow_up = None
+            match = re.search(r'<follow_up>(.*?)</follow_up>', text, re.DOTALL)
+            if match:
+                follow_up = match.group(1).strip()
+                # We return the original text (with tags) so it can be stored in history,
+                # but we also return the extracted follow-up for the frontend to display as a card.
+                # The frontend can choose to strip the tag for display if it wants, 
+                # but actually generate_answer should return both.
+            
+            return {
+                "answer": text,
+                "follow_up": follow_up
+            }
         except Exception as e:
             if "overloaded" in str(e):
                 try:
                     self.console.print("[red]Model is overloaded. Trying fallback model.[/red]")
                     try:
-                        return self.llm.models.generate_content(contents=parts, model=self.FALLBACK_MODEL_NAME).text
+                        res = self.llm.models.generate_content(contents=parts, model=self.FALLBACK_MODEL_NAME)
                     except:
-                        return self.llm.models.generate_content(contents=parts, model="gemini-2.0-flash").text
+                        res = self.llm.models.generate_content(contents=parts, model="gemini-2.0-flash")
+                    
+                    text = res.text
+                    follow_up = None
+                    match = re.search(r'<follow_up>(.*?)</follow_up>', text, re.DOTALL)
+                    if match:
+                        follow_up = match.group(1).strip()
+                    
+                    return {
+                        "answer": text,
+                        "follow_up": follow_up
+                    }
                 except Exception as e:
-                    return f"Error generating answer: {e}"
-            return f"Error generating answer: {e}"
+                    return {"answer": f"Error generating answer: {e}", "follow_up": None}
+            return {"answer": f"Error generating answer: {e}", "follow_up": None}
 
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
@@ -414,15 +440,13 @@ class RAGEngine:
                 formatted_results.append(item)
         
         return formatted_results
-
-
-
+        
 
     def detect_language(self, query: str):
         #if len(query) > 20:
         try:
             lang = detector.detect_language_of(query).name
-            return "It seems the question is in " + lang + " therefore you should answer in " + lang
+            return "The question seems in " + lang + " therefore consider answering in " + lang
         except Exception as e:
             return ""
         # else:
@@ -430,25 +454,57 @@ class RAGEngine:
 
 
     def search(self, query: str, topic: str = "manrique", n_results: int = 5, history: list = []):
-        # Get results using retrieve
+        # 1. Handle "yes" response
+        if query.lower().strip() in ["yes", "oui", "sí", "yep", "sure", "ok", "okay", "yes please", "yes pls", "oui svp", "oui stp", "please do"]:
+            # Look for the last follow-up question in history
+            last_follow_up = None
+            if history:
+                # Iterate history backwards to find the last assistant message with a follow-up
+                for msg in reversed(history):
+                    if msg.get('role') == 'assistant':
+                        # The follow_up might be stored in a special field if we update history,
+                        # but if it was just text, we might need to parse it if tags were still there.
+                        # However, since generate_answer returns a dict, the caller (main.py) 
+                        # should ideally store it.
+                        # For now, let's assume we might find it in the content if tags are present
+                        # OR if the frontend/backend passed it as a separate field.
+                        content = msg.get('content', '')
+                        match = re.search(r'<follow_up>(.*?)</follow_up>', content, re.DOTALL)
+                        if match:
+                            last_follow_up = match.group(1).strip()
+                            break
+            
+            if last_follow_up:
+                self.console.print(f"[cyan]Affirmative response detected. Substituting query with: {last_follow_up}[/cyan]")
+                query = last_follow_up
+
+        # 2. Get results using retrieve
         formatted_results = self.retrieve(query, topic, n_results)
         
         # Determine system instruction based on topic
         system_instruction = None
         if topic.lower() == "manrique":
             system_instruction = MANRIQUE_PROMPT
-            # detect language of the query
-            detected_language_output = self.detect_language(query)
-            if detected_language_output:
-                system_instruction += "\n" + detected_language_output
+        
+        # detect language of the query
+        detected_language_output = self.detect_language(query)
+        if detected_language_output:
+            system_instruction += "\n" + detected_language_output
+        print("********** Query: ", query, "language: ", detected_language_output)
         
         # Generate answer
-        answer = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)
+        result = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)
+        answer = result["answer"]
+        follow_up = result["follow_up"]
+        
         self.console.print("********** LLM Answer: ", Markdown(answer), style="bold yellow")
+        if follow_up:
+             self.console.print("********** Suggested Follow-up: ", follow_up, style="bold cyan")
         
         return {
             "answer": answer,
-            "results": formatted_results
+            "results": formatted_results,
+            "follow_up": follow_up
         }
 
 

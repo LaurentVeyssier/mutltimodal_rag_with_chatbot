@@ -35,6 +35,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     results?: any[];
+    follow_up?: string;
 }
 
 function SourcesSection({ results }: { results: any[] }) {
@@ -131,7 +132,8 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: data.answer,
-                results: data.results
+                results: data.results,
+                follow_up: data.follow_up
             };
             setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {
@@ -194,12 +196,26 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                                                         }
                                                     }}
                                                 >
-                                                    {msg.content}
+                                                    {msg.content.replace(/<follow_up>[\s\S]*?<\/follow_up>/g, '').trim()}
                                                 </ReactMarkdown>
                                             </div>
 
                                             {msg.results.length > 0 && (
                                                 <SourcesSection results={msg.results} />
+                                            )}
+
+                                            {msg.follow_up && i === messages.length - 1 && (
+                                                <div className="mt-4 pt-4 border-t border-border/50">
+                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Suggested Follow-up (click to continue)</p>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="text-xs h-auto py-2 px-3 whitespace-normal text-left justify-start w-full hover:bg-primary/5 hover:text-primary transition-all border-dashed"
+                                                        onClick={() => handleSend(msg.follow_up)}
+                                                        disabled={loading}
+                                                    >
+                                                        {msg.follow_up}
+                                                    </Button>
+                                                </div>
                                             )}
                                         </div>
                                     ) : (

@@ -16,6 +16,7 @@ dependencies = [
     "gradio>=6.1.0",
     "ipykernel>=7.1.0",
     "langfuse>=3.10.7",
+    "lingua-language-detector>=2.1.1",
     "logfire[fastapi,google-genai]>=4.16.0",
     "numpy>=2.3.5",
     "openinference-instrumentation-google-genai>=0.1.8",

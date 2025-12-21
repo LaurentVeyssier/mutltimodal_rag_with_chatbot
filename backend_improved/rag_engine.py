@@ -13,6 +13,11 @@ from rich.markdown import Markdown
 import fitz  # PyMuPDF
 from pinecone import Pinecone
 
+# language detection
+from lingua import Language, LanguageDetectorBuilder
+languages = [Language.ENGLISH, Language.FRENCH, Language.GERMAN, Language.ITALIAN, Language.SPANISH]
+detector = LanguageDetectorBuilder.from_languages(*languages).build()
+
 from google.cloud import storage
 
 from prompts import DEFAULT_PROMPT, MANRIQUE_PROMPT, IMAGE_INGESTION_PROMPT
@@ -410,6 +415,20 @@ class RAGEngine:
         
         return formatted_results
 
+
+
+
+    def detect_language(self, query: str):
+        #if len(query) > 20:
+        try:
+            lang = detector.detect_language_of(query).name
+            return "It seems the question is in " + lang + " therefore you should answer in " + lang
+        except Exception as e:
+            return ""
+        # else:
+        #     return ""
+
+
     def search(self, query: str, topic: str = "manrique", n_results: int = 5, history: list = []):
         # Get results using retrieve
         formatted_results = self.retrieve(query, topic, n_results)
@@ -418,6 +437,10 @@ class RAGEngine:
         system_instruction = None
         if topic.lower() == "manrique":
             system_instruction = MANRIQUE_PROMPT
+            # detect language of the query
+            detected_language_output = self.detect_language(query)
+            if detected_language_output:
+                system_instruction += "\n" + detected_language_output
         
         # Generate answer
         answer = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)

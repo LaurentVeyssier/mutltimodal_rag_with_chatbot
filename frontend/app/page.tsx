@@ -65,6 +65,9 @@ export default function Home() {
           <p className="text-white/90 md:text-muted-foreground text-sm md:text-xl font-light italic max-w-sm hidden md:block">
             "Art into nature, nature into art."
           </p>
+          <p className="text-accent md:text-secondary text-sm md:text-xl font-light italic max-w-sm">
+            1919 - 1997
+          </p>
         </div>
       </div>
 

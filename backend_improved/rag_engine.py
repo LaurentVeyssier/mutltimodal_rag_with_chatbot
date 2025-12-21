@@ -312,13 +312,12 @@ class RAGEngine:
         if not hasattr(self, 'llm'):
             return "LLM not initialized. Please check your API key."
             
+        # If no system instruction is provided, use the default
+        if not system_instruction:
+            system_instruction = DEFAULT_PROMPT
+        
         # Start the prompt
-        if system_instruction:
-            prompt_intro = system_instruction
-        else:
-            prompt_intro = DEFAULT_PROMPT
-            
-        parts = [f"{prompt_intro}\n\nContext:\n"]
+        parts = ["Context:\n"]
         
         for item in context:
             if item['type'] == 'text':
@@ -354,10 +353,14 @@ class RAGEngine:
                 content = msg.get('content', '')
                 parts.append(f"{role.capitalize()}: {content}\n")
         
-        parts.append(f"\nQuestion: {query}")
+        parts.append(f"\n\n<Question to answer> {query} </Question to answer>")
         
         try:
-            response = self.llm.models.generate_content(contents=parts, model=self.MODEL_NAME)
+            response = self.llm.models.generate_content(
+                contents=parts, 
+                model=self.MODEL_NAME,
+                config={'system_instruction': system_instruction}
+            )
             text = response.text
             
             # Extract follow-up question
@@ -379,9 +382,17 @@ class RAGEngine:
                 try:
                     self.console.print("[red]Model is overloaded. Trying fallback model.[/red]")
                     try:
-                        res = self.llm.models.generate_content(contents=parts, model=self.FALLBACK_MODEL_NAME)
+                        res = self.llm.models.generate_content(
+                            contents=parts, 
+                            model=self.FALLBACK_MODEL_NAME,
+                            config={'system_instruction': system_instruction}
+                        )
                     except:
-                        res = self.llm.models.generate_content(contents=parts, model="gemini-2.0-flash")
+                        res = self.llm.models.generate_content(
+                            contents=parts, 
+                            model="gemini-2.0-flash",
+                            config={'system_instruction': system_instruction}
+                        )
                     
                     text = res.text
                     follow_up = None
@@ -446,7 +457,7 @@ class RAGEngine:
         #if len(query) > 20:
         try:
             lang = detector.detect_language_of(query).name
-            return "The question seems in " + lang + " therefore consider answering in " + lang
+            return lang
         except Exception as e:
             return ""
         # else:
@@ -487,10 +498,11 @@ class RAGEngine:
             system_instruction = MANRIQUE_PROMPT
         
         # detect language of the query
-        detected_language_output = self.detect_language(query)
-        if detected_language_output:
-            system_instruction += "\n" + detected_language_output
-        print("********** Query: ", query, "language: ", detected_language_output)
+        detected_language = self.detect_language(query)
+        if detected_language:
+            system_instruction += "\n<Language for Response> " + detected_language + " </Language for Response>"
+        print("********** Query: ", query)
+        print("language: ", detected_language)
         
         # Generate answer
         result = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)

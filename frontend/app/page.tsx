@@ -53,7 +53,7 @@ export default function Home() {
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-background/40 to-transparent md:bg-gradient-to-r md:from-transparent md:to-background/10 mix-blend-multiply" />
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 to-transparent md:hidden" />
 
-        <div className="relative z-20 space-y-1 md:mb-20">
+        <div className="relative z-20 space-y-0 md:mb-20">
           <span className="uppercase tracking-widest text-[10px] md:text-sm font-bold text-accent">The Visionary</span>
           <h1 className="text-3xl md:text-7xl font-bold leading-none tracking-tighter text-white md:text-primary mix-blend-hard-light drop-shadow-lg md:drop-shadow-none">
             César <br />
@@ -65,8 +65,8 @@ export default function Home() {
           <p className="text-white/90 md:text-muted-foreground text-sm md:text-xl font-light italic max-w-sm hidden md:block">
             "Art into nature, nature into art."
           </p>
-          <p className="text-accent md:text-secondary text-sm md:text-xl font-light italic max-w-sm">
-            1919 - 1997
+          <p className="text-accent/90 md:text-secondary text-sm md:text-xl font-light italic max-w-sm">
+            1919 - 1992
           </p>
         </div>
       </div>

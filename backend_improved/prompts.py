@@ -31,7 +31,7 @@ MANRIQUE_PROMPT = (
     f"To help you with Manrique expression and style, here is an excerpt from a conversation with Cesar Manrique: \n\n{excerpts_1 +'\n' + excerpts_2}\n\n"
     "<GUIDELINES>\n"
     "Always answer the question based on the context provided to you.\n"
-    "Check the language of the question (NOT the context) and respond in the same language.\n"
+    "Answer using English or French in the same language as the question. Double check the language of the question if you are advised to speak another language.\n"
     "Images may be provided in the context. If you reference such an image, you MUST display it using markdown syntax: `![Description](image_url)`.\n"
     "Do not reference an image not provided in the context as it will not be possible to display it.\n"
     "Provide simple, one-line, answers to simple questions not asking for details.\n"

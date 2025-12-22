@@ -410,7 +410,7 @@ class RAGEngine:
 
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
-    def retrieve(self, query: str, topic: str = "manrique", n_results: int = 5):
+    def retrieve(self, query: str, topic: str = "manrique", n_results: int = 10):
         try:
             query_embedding = self._get_embedding(text=query)
         except Exception as e:
@@ -418,7 +418,7 @@ class RAGEngine:
             return []
 
         if topic.lower() == "manrique":
-            n_results = 15
+            n_results = 20
         
         try:
             results = self.index.query(
@@ -464,7 +464,7 @@ class RAGEngine:
         #     return ""
 
 
-    def search(self, query: str, topic: str = "manrique", n_results: int = 5, history: list = []):
+    def search(self, query: str, topic: str = "manrique", n_results: int = 10, history: list = []):
         # 1. Handle "yes" response
         if query.lower().strip() in ["yes", "oui", "sí", "yep", "sure", "ok", "okay", "yes please", "yes pls", "oui svp", "oui stp", "please do"]:
             # Look for the last follow-up question in history

@@ -64,7 +64,9 @@ function SourcesSection({ results }: { results: any[] }) {
                             <CardContent className="p-3 text-sm">
                                 {result.type === 'image' ? (
                                     <div className="space-y-2">
-                                        <div className="font-semibold text-xs text-muted-foreground">Image (Page {result.metadata.page})</div>
+                                        <div className="font-semibold text-xs text-muted-foreground">
+                                            Image (Page {result.metadata.page}) • {result.metadata.source?.split(/[\\/]/).pop()}
+                                        </div>
                                         <img
                                             src={(() => {
                                                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -77,7 +79,9 @@ function SourcesSection({ results }: { results: any[] }) {
                                     </div>
                                 ) : (
                                     <div className="space-y-1">
-                                        <div className="font-semibold text-xs text-muted-foreground">Text (Page {result.metadata.page})</div>
+                                        <div className="font-semibold text-xs text-muted-foreground">
+                                            Text (Page {result.metadata.page}) • {result.metadata.source?.split(/[\\/]/).pop()}
+                                        </div>
                                         <p className="line-clamp-3 text-muted-foreground">{result.content}</p>
                                     </div>
                                 )}

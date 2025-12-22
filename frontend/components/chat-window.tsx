@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
-    "Who is César Manrique?",
+    "Could you tell me who is César Manrique?",
     "Where and when were you born?",
     "How would you describe yourself as an artist and as a person?",
     "What inspired you?",

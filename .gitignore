@@ -63,3 +63,8 @@ test_chroma_db_prompt/
 test_backend.py
 sample_test.pdf
 create_pdf.py
+
+
+# source of documents and pdfs
+backend_improved/test/
+xdataset_manrique/

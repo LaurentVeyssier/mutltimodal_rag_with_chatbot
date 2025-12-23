@@ -10,13 +10,21 @@ The project consists of a **FastAPI backend** and a **Next.js frontend**, heavil
 - **Multimodal RAG**: Processes PDFs to extract text and images.
 - **Image Intelligence**: Uses Gemini to generate descriptions for extracted images within their original PDF context. Image descriptions are used to help the LLM "see" and describe extracted images.
 - **Hybrid Retrieval**: Stores both text and image metadata in Pinecone for semantic search. Image description are used to compute embeddings of the image for image retrieval. Both image description and the image itself are provided as context to the (multimodal) LLM.
-- **Language Detection**: Automatically detects user query language and responds accordingly.
+- **Adaptive Language**: Automatically detects user query language and responds accordingly.
+- **Prompt Engineering**: 
+    - **Persona**: The chatbot speaks as if it were César Manrique, the visionary artist and architect. It articulates its responses with the passion, conviction, and aesthetic sensitivity Manrique possessed in the 1960s and 70s, having recently returned to Lanzarote to transform it into a work of art.
+    - **Modulation**: Prompt designed to modulate the response dynamics between simple questions and more complex ones.
+- **Interactivity**: The chatbot terminates its response with a follow-up question that the user could ask to dig deeper into the topic.
+
+See [more detailed description of the backend](./backend_improved/README.md)
 
 ### Frontend (`/frontend`)
 - **Modern UI**: Clean, artistic interface built with Next.js and Tailwind CSS.
 - **Interactive Chat**: Real-time interaction with the AI persona.
 - **Source Transparency**: Accordion view for sources showing the exact page and document (PDF) where information was retrieved whether this is a text chunk or an image.
 - **Document Ingestion**: Direct UI for uploading new PDF documents to the knowledge base.
+
+See [more detailed description of the frontend](./frontend/README.md)
 
 ## ☁️ Cloud Services & Integrations
 

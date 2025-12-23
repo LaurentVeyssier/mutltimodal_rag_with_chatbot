@@ -66,5 +66,5 @@ create_pdf.py
 
 
 # source of documents and pdfs
-/backend_improved/test/
-/xdataset_manrique/
+backend_improved/test/
+xdataset_manrique/

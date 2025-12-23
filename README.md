@@ -38,6 +38,7 @@ The "Manrique Chatbot" is built for the cloud:
 cesar_manrique_chatbot/
 ├── backend_improved/     # FastAPI application & RAG Engine
 ├── frontend/             # Next.js 15+ application
+├── chatbot/              # Not used in this project
 └── README.md             # This file
 ```
 

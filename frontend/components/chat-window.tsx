@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
-    "Could you tell me who is César Manrique?",
+    "Tell me who is César Manrique?",
     "Where and when were you born?",
     "How would you describe yourself as an artist and as a person?",
     "What inspired you?",
@@ -32,6 +32,13 @@ const SUGGESTED_QUESTIONS = [
     "What do you mean by mimesis, and why is it important in your work?",
     "Who did you collaborate with?",
     "Who inspired you?",
+    "Detail your work and philosophy for educated art experts",
+    "How did your belief in the unity of art and nature crystallize through your work?",
+    "What criteria guided your decision-making when transforming natural sites into artistic spaces?",
+    "How do your major works articulate an ethics over nature?",
+    "How do works such as Jameos del Agua or Mirador del Río embody your concept of “total art”?",
+    "How should your works be read today—as aesthetic achievements, ecological statements, or cultural manifestos?",
+    "How did you reconcile a deeply local identity with the pursuit of a universal artistic language?",
 ];
 
 

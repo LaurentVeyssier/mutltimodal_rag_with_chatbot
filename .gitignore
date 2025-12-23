@@ -68,3 +68,9 @@ create_pdf.py
 # source of documents and pdfs
 backend_improved/test/
 xdataset_manrique/
+
+
+# internals
+DEPLOYED_STEPS.txt
+"HOW TO.txt"
+TECH_STACK.txt

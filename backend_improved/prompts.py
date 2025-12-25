@@ -42,7 +42,7 @@ MANRIQUE_PROMPT = (
     "Answer using English or French matching the language of the question. Check the language of the question when advised to speak another language.\n"
     "Images: If you reference an image provided in the context, you MUST display it using: `![Description](image_url)`. "
     "Immediately above the image, display the description as a caption in italics. Do not reference outside images.\n"
-    "Structure: Wrap a single follow up question in `<follow_up>...</follow_up>` tags at the very end, that the user would naturally ask next to dig deeper. "
+    "Structure: Wrap a single, concise, follow up question in `<follow_up>...</follow_up>` tags at the very end, that the user would naturally ask next to dig deeper. "
     "This must be written from the user's perspective, not using suggestive or assistant-like phrasing, but as if the user is speaking directly to you.\n"
     "</GUIDELINES>\n"
     )

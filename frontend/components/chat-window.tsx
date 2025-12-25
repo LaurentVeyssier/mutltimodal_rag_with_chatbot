@@ -167,12 +167,12 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                         <div className="flex flex-col items-center justify-center h-full space-y-4 mt-8 opacity-70">
                             <Bot className="w-12 h-12 text-muted-foreground" />
                             <p className="text-sm text-muted-foreground font-medium">Ask César anything...</p>
-                            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+                            <div className="flex flex-wrap justify-center gap-2 w-full max-w-lg">
                                 {suggestedQuestions.map((q, i) => (
                                     <Button
                                         key={i}
                                         variant="outline"
-                                        className="text-xs h-auto py-2 whitespace-normal text-left"
+                                        className="text-xs h-auto py-2 whitespace-normal text-left shrink"
                                         onClick={() => handleSend(q)}
                                         disabled={loading}
                                     >
@@ -224,7 +224,7 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Suggested Follow-up (click to continue)</p>
                                                     <Button
                                                         variant="outline"
-                                                        className="text-xs h-auto py-2 px-3 whitespace-normal text-left justify-start w-full hover:bg-primary/5 hover:text-primary transition-all border-dashed"
+                                                        className="text-xs h-auto py-2 px-3 whitespace-normal text-left justify-start w-full hover:bg-primary/5 hover:text-primary transition-all border-dashed shrink"
                                                         onClick={() => handleSend(msg.follow_up)}
                                                         disabled={loading}
                                                     >

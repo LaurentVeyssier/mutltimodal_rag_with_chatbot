@@ -306,6 +306,20 @@ class RAGEngine:
             namespace=namespace
         )
 
+    @observe(name="load_image")
+    def load_image(self, image_path: str):
+        """Load an image from a URL or local path."""
+        try:
+            if image_path.startswith("http"):
+                response = requests.get(image_path, stream=True)
+                response.raise_for_status()
+                return Image.open(response.raw)
+            else:
+                return None
+        except Exception as e:
+            self.console.print(f"[red]Error loading image {image_path}: {e}[/red]")
+            return None
+
     #@tracer.chain(name="generate_answer")
     @observe(name="generate_answer")
     def generate_answer(self, query: str, context: list, history: list = [], system_instruction: str = None):
@@ -323,28 +337,19 @@ class RAGEngine:
             if item['type'] == 'text':
                 parts.append(f"- {item['content']}\n")
             elif item['type'] == 'image':
-                # Load the image from the path (URL or local)
+                # Load the image using the modular load_image method
                 image_path = item['metadata'].get('image_path', '')
                 description = item.get('content', '')
+                page = item['metadata'].get('page', 'unknown')
                 
-                img = None
-                try:
-                    if image_path.startswith("http"):
-                        # Handle URL
-                        response = requests.get(image_path, stream=True)
-                        response.raise_for_status()
-                        img = Image.open(response.raw)
-                        parts.append(f"- [Image on page {item['metadata']['page']}]: {description}\n")
-                        parts.append(f"  Image URL: {image_path}\n") # Return remote URL
-                        parts.append(img)
-                        parts.append("\n")
-                        parts.append(img)
-                        parts.append("\n")
-                    else:
-                        parts.append(f"- [Image not found at {image_path} on page {item['metadata']['page']}]\n")
-                except Exception as e:
-                    print(f"Error loading image {image_path}: {e}")
-                    parts.append(f"- [Error loading image on page {item['metadata']['page']}]\n")
+                img = self.load_image(image_path)
+                if img:
+                    parts.append(f"- [Image on page {page}]: {description}\n")
+                    parts.append(f"  Image URL: {image_path}\n")
+                    parts.append(img)
+                    parts.append("\n")
+                else:
+                    parts.append(f"- [Image not found or error loading at {image_path} on page {page}]\n")
         
         if history:
             parts.append("\nConversation History:\n")
@@ -410,28 +415,17 @@ class RAGEngine:
 
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
-    def retrieve(self, query: str, topic: str = "manrique", n_results: int = 10):
-        try:
-            query_embedding = self._get_embedding(text=query)
-        except Exception as e:
-            self.console.print(f"[red]Error generating query embedding: {e}[/red]")
-            return []
-
+    def retrieve(self, query_embedding: list, topic: str = "manrique", n_results: int = 10):
         if topic.lower() == "manrique":
             n_results = 20
         
-        try:
-            results = self.index.query(
-                vector=query_embedding,
-                top_k=n_results,
-                include_metadata=True,
-                namespace=topic
-            )
-        except Exception as e:
-            self.console.print(f"[red]Error querying Pinecone: {e}[/red]")
-            return []
+        results = self.index.query(
+            vector=query_embedding,
+            top_k=n_results,
+            include_metadata=True,
+            namespace=topic
+        )
 
-        self.console.print("********** Query: ", query, style="bold yellow")
         self.console.print("********** VectorDB Results: ", results, style="bold yellow")
         
         # Format results
@@ -452,7 +446,7 @@ class RAGEngine:
         
         return formatted_results
         
-
+    @observe(name="detect_language")
     def detect_language(self, query: str):
         #if len(query) > 20:
         try:
@@ -464,21 +458,13 @@ class RAGEngine:
         #     return ""
 
 
-    def search(self, query: str, topic: str = "manrique", n_results: int = 10, history: list = []):
+    async def search_streaming(self, query: str, topic: str = "manrique", n_results: int = 10, history: list = []):
         # 1. Handle "yes" response
         if query.lower().strip() in ["yes", "oui", "sí", "yep", "sure", "ok", "okay", "yes please", "yes pls", "oui svp", "oui stp", "please do"]:
-            # Look for the last follow-up question in history
             last_follow_up = None
             if history:
-                # Iterate history backwards to find the last assistant message with a follow-up
                 for msg in reversed(history):
                     if msg.get('role') == 'assistant':
-                        # The follow_up might be stored in a special field if we update history,
-                        # but if it was just text, we might need to parse it if tags were still there.
-                        # However, since generate_answer returns a dict, the caller (main.py) 
-                        # should ideally store it.
-                        # For now, let's assume we might find it in the content if tags are present
-                        # OR if the frontend/backend passed it as a separate field.
                         content = msg.get('content', '')
                         match = re.search(r'<follow_up>(.*?)</follow_up>', content, re.DOTALL)
                         if match:
@@ -489,22 +475,39 @@ class RAGEngine:
                 self.console.print(f"[cyan]Affirmative response detected. Substituting query with: {last_follow_up}[/cyan]")
                 query = last_follow_up
 
-        # 2. Get results using retrieve
-        formatted_results = self.retrieve(query, topic, n_results)
+        # 2. Embedding query
+        yield {"type": "status", "message": "Embedding query..."}
+        try:
+            query_embedding = self._get_embedding(text=query)
+        except Exception as e:
+            self.console.print(f"[red]Error generating query embedding: {e}[/red]")
+            yield {"type": "error", "message": f"Error generating query embedding: {e}"}
+            return
+
+        # 3. Get results using retrieve
+        yield {"type": "status", "message": "Retrieving documents..."}
+        self.console.print("********** Query: ", query, style="bold yellow")
+        try:
+            formatted_results = self.retrieve(query_embedding, topic=topic, n_results=n_results)
+        except Exception as e:
+            self.console.print(f"[red]Error querying Pinecone: {e}[/red]")
+            yield {"type": "error", "message": f"Error querying Pinecone: {e}"}
+            return
         
-        # Determine system instruction based on topic
+        # 4. Determine system instruction based on topic
         system_instruction = None
         if topic.lower() == "manrique":
             system_instruction = MANRIQUE_PROMPT
         
-        # detect language of the query
+        # 5. detect language of the query
         detected_language = self.detect_language(query)
         if detected_language:
             system_instruction += "\n<Language for Response> " + detected_language + " </Language for Response>"
         print("********** Query: ", query)
         print("language: ", detected_language)
-        
-        # Generate answer
+
+        # 6. Generate answer
+        yield {"type": "status", "message": "Generating multimodal response..."}
         result = self.generate_answer(query, formatted_results, history=history, system_instruction=system_instruction)
         answer = result["answer"]
         follow_up = result["follow_up"]
@@ -513,7 +516,8 @@ class RAGEngine:
         if follow_up:
              self.console.print("********** Suggested Follow-up: ", follow_up, style="bold cyan")
         
-        return {
+        yield {
+            "type": "data",
             "answer": answer,
             "results": formatted_results,
             "follow_up": follow_up

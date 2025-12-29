@@ -84,15 +84,21 @@ async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique"
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/chat", response_model=QueryResponse)
+from fastapi.responses import StreamingResponse
+import json
+
+@app.post("/chat")
 #@tracer.chain(name="chat")
 @observe(name="chat")
 async def chat(request: QueryRequest):
-    try:
-        response = rag_engine.search(request.query, topic=request.topic, history=request.history)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    async def event_generator():
+        try:
+            async for chunk in rag_engine.search_streaming(request.query, topic=request.topic, history=request.history):
+                yield json.dumps(chunk) + "\n"
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": str(e)}) + "\n"
+    
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
 
 @app.get("/topics")

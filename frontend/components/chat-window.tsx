@@ -111,6 +111,7 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('Thinking...');
     const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -136,23 +137,36 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
         if (!text) setInput(''); // Only clear input if typed
 
         setLoading(true);
+        setLoadingMessage('Waking up the backend...');
 
         try {
             // Prepare history (all messages except the one we just added locally)
-            // We need to map them to the format expected by backend if necessary, 
-            // but the current Message interface {role, content} matches what we want.
             const history = messages.map(m => ({ role: m.role, content: m.content }));
 
-            const data = await chat(userMessage.content, selectedTopic, history);
-            const assistantMessage: Message = {
-                role: 'assistant',
-                content: data.answer,
-                results: data.results,
-                follow_up: data.follow_up
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong.' }]);
+            const data = await chat(userMessage.content, selectedTopic, history, (status) => {
+                setLoadingMessage(status);
+            });
+
+            if (data) {
+                const assistantMessage: Message = {
+                    role: 'assistant',
+                    content: data.answer,
+                    results: data.results,
+                    follow_up: data.follow_up
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+            }
+        } catch (error: any) {
+            let errorMessage = 'Sorry, something went wrong.';
+
+            // Check for timeout status codes
+            if (error instanceof Response && (error.status === 502 || error.status === 504)) {
+                errorMessage = 'The demo timed out due to free-tier limits. Please retry in a few seconds';
+            } else if (error?.message?.includes('timeout') || error?.message?.includes('fetch')) {
+                errorMessage = 'The demo timed out due to free-tier limits. Please retry in a few seconds';
+            }
+
+            setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
             console.error(error);
         } finally {
             setLoading(false);
@@ -245,7 +259,7 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                             <Avatar>
                                 <AvatarFallback><Bot /></AvatarFallback>
                             </Avatar>
-                            <div className="bg-muted p-3 rounded-lg animate-pulse">Thinking...</div>
+                            <div className="bg-muted p-3 rounded-lg animate-pulse">{loadingMessage}</div>
                         </div>
                     )}
                     <div ref={scrollRef} />

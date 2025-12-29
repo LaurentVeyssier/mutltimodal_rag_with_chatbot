@@ -27,7 +27,7 @@ A FastAPI-powered Multimodal RAG Engine that bridges document intelligence with 
 
 ### 4. Embeddings: Jina AI API
 - **Purpose**: Converting text chunks and image descriptions into high-dimensional vectors.
-- **Model**: `jina-embeddings-v4`.
+- **Model**: `jina-embeddings-v4`. Multimodal / multilingual embedding model convinient to handle source documents in multiple languages and produce embeddings for images and text. Can be run locally or using jina AI API.
 
 ### 5. Tracing: Langfuse Platform
 - **Purpose**: End-to-end tracing of retrieval and generation.

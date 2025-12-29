@@ -70,4 +70,4 @@ npm run dev
 ```
 
 ## 📜 License
-This project is for educational and artistic preservation purposes.
+This personal project is for educational and artistic preservation purposes.

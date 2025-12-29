@@ -69,5 +69,21 @@ npm install
 npm run dev
 ```
 
+## Disclaimer
+
+This is a non-commercial experimental project created for research and educational purposes. All images and text remain the property of their respective owners. Content is used for demonstration purposes only. 
+
+If you are a rights holder and believe content should be removed, please contact me.
+
+## Attributions
+
+Some of the content used in this project is from the following sources:
+
+- [César Manrique Foundation](https://fcmanrique.org/fr/cesar-manrique/biografia/)
+- [César Manrique Foundation - B.Quevedo chronology](https://fcmanrique.org/recursos/publicacion/4d078333englishversion_cm1950-1957.pdf)
+- [admagazine - pictures](https://www.admagazine.fr/article/maisons-cesar-manrique-lanzarote)
+- [Studia Humanitatis Journal - research paper](https://studiahumanitatisjournal.com/revista/index.php/shj/article/view/5/3)
+- [Canariaslovers.com - pictures](https://canariaslovers.com/que-visiter-lanzarote-attractions-cesar-manrique/)
+
 ## 📜 License
 This personal project is for educational and artistic preservation purposes.

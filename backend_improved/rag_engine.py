@@ -15,7 +15,13 @@ from pinecone import Pinecone
 
 # language detection
 from lingua import Language, LanguageDetectorBuilder
-languages = [Language.ENGLISH, Language.FRENCH, Language.GERMAN, Language.ITALIAN, Language.SPANISH]
+languages = [
+    Language.ENGLISH, 
+    Language.FRENCH, 
+    Language.GERMAN, 
+    Language.ITALIAN, 
+    Language.SPANISH
+    ]
 detector = LanguageDetectorBuilder.from_languages(*languages).build()
 
 from google.cloud import storage
@@ -101,7 +107,10 @@ class RAGEngine:
             return ["manrique"]
 
 
-    def generate_image_descriptions(self, images: List[Image.Image], context_pages: List[Image.Image]) -> List[str]:
+    def generate_image_descriptions(
+        self, 
+        images: List[Image.Image], 
+        context_pages: List[Image.Image]) -> List[str]:
         """
         Generates descriptions for a list of images using the provided context pages.
         """
@@ -154,8 +163,25 @@ class RAGEngine:
             return ["Image description unavailable"] * len(images)
 
 
-    def ingest_file(self, file_path: str, topic: str = "manrique"):
-        # collection = self._get_collection(topic) # Removed for Pinecone
+    def ingest_file(
+        self, 
+        file_path: str, 
+        topic: str = "manrique"
+    ):
+        """
+        Ingest a PDF file into the knowledge base.
+        - Adds text chunks and image to the knowledge base.
+        - Generate descriptions for extracted image. This description is used to compute image embeddings.
+        text metadata: 'text' tag, source file name and page number
+        image metadata: 'image' tag, source file name, page number, image Google Cloud Storage URL, image description
+        
+        Args:
+            file_path (str): Path to the PDF file to ingest.
+            topic (str): Topic name for the knowledge base. Defaults to "manrique".
+        
+        Returns:
+            None
+        """
         doc = fitz.open(file_path)
         text_pages_count = 0
         
@@ -171,7 +197,7 @@ class RAGEngine:
                 self._add_text_to_db(text, file_path, page_num+1, topic)
                 text_pages_count += 1
             
-            # 2. Render Page for Context
+            # 2. Render Page for Context in image captioning step
             pix = page.get_pixmap()
             page_image = Image.open(io.BytesIO(pix.tobytes()))
             if page_image.mode != "RGB":
@@ -208,7 +234,21 @@ class RAGEngine:
 
     #@tracer.chain(name="get_embedding")
     @observe(name="get_embedding")
-    def _get_embedding(self, text: str = None, image: base64 = None):
+    def _get_embedding(
+        self, 
+        text: str = None, 
+        image: base64 = None
+    ):
+        """
+        Get embeddings for a given text or image.
+        
+        Args:
+            text (str): Text to get embeddings for.
+            image (base64): Image to get embeddings for. # THIS IS NO LONGER USED IN THIS VERSION
+        
+        Returns:
+            list: List of embeddings.
+        """
         if text is None and image is None:
             raise ValueError("At least one of text or image must be provided")
         elif text is not None and image is not None:
@@ -246,7 +286,24 @@ class RAGEngine:
                     raise e
                 time.sleep(1)
 
-    def _add_text_to_db(self, text: str, file_path: str, page_num: int, namespace: str):
+    def _add_text_to_db(
+        self, 
+        text: str, 
+        file_path: str, 
+        page_num: int, 
+        namespace: str
+    ):
+        """
+        Add text to the knowledge base specified by namespace.
+        - compute text embedding
+        - store in the knowledge base with metadata (source, page, text chunk)
+        
+        Args:
+            text (str): Text to add to the knowledge base.
+            file_path (str): Path to the file the text is from.
+            page_num (int): Page number the text is from.
+            namespace (str): database collection to store the text in.
+        """
         embedding = self._get_embedding(text=text)
         doc_id = str(uuid.uuid4())
         
@@ -262,8 +319,31 @@ class RAGEngine:
             namespace=namespace
         )
 
-    def _add_image_to_db(self, image: Image.Image, description: str, file_path: str, page_num: int, img_index: int, namespace: str):
-        #embedding = self.model.encode(image).tolist()
+    def _add_image_to_db(
+        self, 
+        image: Image.Image, 
+        description: str, 
+        file_path: str, 
+        page_num: int, 
+        img_index: int, 
+        namespace: str
+    ):
+        """
+        Add image to the knowledge base specified by namespace.
+        - compute image embedding using its text description
+        - store in the knowledge base with metadata (source, page, image URL, image description)
+        
+        Args:
+            image (Image.Image): Image to add to the knowledge base.
+            description (str): Description of the image.
+            file_path (str): Path to the file the image is from.
+            page_num (int): Page number the image is from.
+            img_index (int): Image index on the page.
+            namespace (str): database collection to store the image in.
+        """
+
+        # calculate embedding from the raw image itself
+        #embedding = self.model.encode(image).tolist()  # NO LONGER USED IN THIS VERSION
 
         doc_id = str(uuid.uuid4())
         
@@ -308,7 +388,7 @@ class RAGEngine:
 
     @observe(name="load_image")
     def load_image(self, image_path: str):
-        """Load an image from a URL or local path."""
+        """Load an image from a URL"""
         try:
             if image_path.startswith("http"):
                 response = requests.get(image_path, stream=True)
@@ -322,7 +402,26 @@ class RAGEngine:
 
     #@tracer.chain(name="generate_answer")
     @observe(name="generate_answer")
-    def generate_answer(self, query: str, context: list, history: list = [], system_instruction: str = None):
+    def generate_answer(
+        self, 
+        query: str, 
+        context: list, 
+        history: list = [], 
+        system_instruction: str = None
+    ):
+        """
+        Generate an answer to a query based on the provided context.
+        The context is prepared as a list of text chunks and images.
+        - Text: source file name and text content
+        - Image: image URL, image description, raw image for visual analysis
+        A follow-up question is generated to be used as a suggested next question.
+        
+        Args:
+            query (str): The query to generate an answer for.
+            context (list): The context to use for generating the answer.
+            history (list): The conversation history.
+            system_instruction (str): The system instruction to use.
+        """
         if not hasattr(self, 'llm'):
             return "LLM not initialized. Please check your API key."
             
@@ -333,23 +432,26 @@ class RAGEngine:
         # Start the prompt
         parts = ["Context:\n"]
         
+        # 1 - prepare context for the LLM to respond to the query
         for item in context:
+            # if text chunk: we provide the source file name and the text content
             if item['type'] == 'text':
-                parts.append(f"- {item['content']}\n")
+                source = item['metadata'].get('source', '')
+                parts.append(f"- {source}: {item['content'].strip()}\n")
+            # if image: we provide the raw image, the image text description and the image GCS URL
             elif item['type'] == 'image':
                 # Load the image using the modular load_image method
                 image_path = item['metadata'].get('image_path', '')
                 description = item.get('content', '')
-                page = item['metadata'].get('page', 'unknown')
                 
                 img = self.load_image(image_path)
                 if img:
-                    parts.append(f"- [Image on page {page}]: {description}\n")
+                    parts.append(f"- [Image]: {description}\n")
                     parts.append(f"  Image URL: {image_path}\n")
                     parts.append(img)
                     parts.append("\n")
                 else:
-                    parts.append(f"- [Image not found or error loading at {image_path} on page {page}]\n")
+                    parts.append(f"- [Image not found or error loading at {image_path}]\n")
         
         if history:
             parts.append("\nConversation History:\n")
@@ -360,6 +462,7 @@ class RAGEngine:
         
         parts.append(f"\n\n<Question to answer> {query} </Question to answer>")
         
+        # 2 - generate answer
         try:
             response = self.llm.models.generate_content(
                 contents=parts, 
@@ -368,7 +471,7 @@ class RAGEngine:
             )
             text = response.text
             
-            # Extract follow-up question
+            # 3 - Extract follow-up question
             follow_up = None
             match = re.search(r'<follow_up>(.*?)</follow_up>', text, re.DOTALL)
             if match:
@@ -382,6 +485,8 @@ class RAGEngine:
                 "answer": text,
                 "follow_up": follow_up
             }
+
+        # 4 - handle errors with fallback model in case of LLM overload    
         except Exception as e:
             if "overloaded" in str(e):
                 try:
@@ -415,7 +520,24 @@ class RAGEngine:
 
     #@tracer.chain(name="vector_search")
     @observe(name="vector_search")
-    def retrieve(self, query_embedding: list, topic: str = "manrique", n_results: int = 10):
+    def retrieve(
+        self, 
+        query_embedding: list, 
+        topic: str = "manrique", 
+        n_results: int = 10
+    ):
+        """
+        Retrieve documents from vector database based on query embedding.
+        
+        Args:
+            query_embedding (list): The query embedding.
+            topic (str): The collection to search in. Defaults to "manrique".
+            n_results (int): The number of results to retrieve. Defaults to 10.
+
+        Returns:
+            list: The retrieved documents with their metadata.
+        """
+        # 1 - retrieve documents from vector database
         if topic.lower() == "manrique":
             n_results = 20
         
@@ -448,17 +570,48 @@ class RAGEngine:
         
     @observe(name="detect_language")
     def detect_language(self, query: str):
-        #if len(query) > 20:
+        """
+        Detect the language of the query.
+        Works only for languages initialized in the detector (ES, EN, DE, FR, IT).
+        Will return the language with highest probability among the initialized languages.
+        Detection can fails if the query is too short or if the language is not initialized.
+        
+        Args:
+            query (str): The query to detect the language of.
+        
+        Returns:
+            str: The language of the query.
+        """
         try:
             lang = detector.detect_language_of(query).name
             return lang
         except Exception as e:
             return ""
-        # else:
-        #     return ""
 
 
-    async def search_streaming(self, query: str, topic: str = "manrique", n_results: int = 10, history: list = []):
+    async def search_streaming(
+        self, 
+        query: str, 
+        topic: str = "manrique", 
+        n_results: int = 10, 
+        history: list = []
+    ):
+        """
+        Workflow to respond to a query using RAG.
+        Detects the language of the query to respond in the same language.
+        yield status messages about the progress of the workflow.
+        The outputs are used by the frontend to display the answer, 
+        the list of document used as context, a suggested follow-up question.
+        
+        Args:
+            query (str): The query to search for.
+            topic (str): The collection to search in. Defaults to "manrique".
+            n_results (int): The number of results to retrieve. Defaults to 10.
+            history (list): The conversation history. Defaults to [].
+        
+        Returns:
+            list: the answer, the list of document used as context, a suggested follow-up question.
+        """
         # 1. Handle "yes" response
         if query.lower().strip() in ["yes", "oui", "sí", "yep", "sure", "ok", "okay", "yes please", "yes pls", "oui svp", "oui stp", "please do"]:
             last_follow_up = None

@@ -1,6 +1,8 @@
 import os
+import json
 import shutil
 from pathlib import Path
+from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 # from fastapi.staticfiles import StaticFiles
@@ -61,8 +63,19 @@ class QueryResponse(BaseModel):
     results: List[dict]
     follow_up: Optional[str] = None
 
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique")):
+    """
+    Route to upload a PDF file to be processed.
+    
+    Args:
+        file (UploadFile): The file to upload.
+        topic (str): The collection to upload the file to. Defaults to "manrique".
+    
+    Returns:
+        dict: A dictionary with success message.
+    """
     allow_upload = os.getenv("ALLOW_UPLOAD", "true").lower() == "true"
     if not allow_upload:
         raise HTTPException(status_code=403, detail="File uploading is temporarily disabled.")
@@ -84,13 +97,21 @@ async def upload_file(file: UploadFile = File(...), topic: str = Form("manrique"
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from fastapi.responses import StreamingResponse
-import json
+
 
 @app.post("/chat")
 #@tracer.chain(name="chat")
 @observe(name="chat")
 async def chat(request: QueryRequest):
+    """
+    Route to chat with the RAG engine.
+    
+    Args:
+        request (QueryRequest): The request object containing the query, topic, and history.
+    
+    Returns:
+        StreamingResponse: A streaming response containing the chat results.
+    """
     async def event_generator():
         try:
             async for chunk in rag_engine.search_streaming(request.query, topic=request.topic, history=request.history):
@@ -105,11 +126,21 @@ async def chat(request: QueryRequest):
 #@tracer.chain(name="get_topics")
 @observe(name="get_topics")
 async def get_topics():
+    """
+    Route to get the list of available collections.
+    
+    Returns:
+        dict: A dictionary with the list of available collections.
+    """
     try:
         topics = rag_engine.list_topics()
         return {"topics": topics}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -69,6 +69,10 @@ npm install
 npm run dev
 ```
 
+This demo is hosted on free-tier services (Render, Vercel, and third-party APIs).
+The backend will go to sleep when idle, and concurrent requests are not optimized.
+Expect cold starts, high latency, or occasional failures under load. Will cause slow responses or possible timeouts.
+
 ## Disclaimer
 
 This is a non-commercial experimental project created for research and educational purposes. All images and text remain the property of their respective owners. Content is used for demonstration purposes only. 

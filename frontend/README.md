@@ -11,6 +11,7 @@ A premium, interactive web interface for exploring the legacy of César Manrique
   - Supports both text chunks and images.
   - Displays the source PDF filename and specific page number.
 - **Dynamic Suggested Questions**: Offers a set of relevant starting points for exploration. Each answer is completed with a suggested follow-up question to deep dive into the topic.
+- **Dynamic state progress status update**: The workflow's state is dynamically updated as the tool processes the user's query.
 - **Document Management**: Dedicated upload section to expand the chatbot's knowledge base.
 
 ## 🛠️ Tech Stack

@@ -9,7 +9,7 @@ The project consists of a **FastAPI backend** and a **Next.js frontend**, heavil
 ### Backend (`/backend_improved`)
 - **Multimodal RAG**: Processes PDFs to extract text and images.
 - **Image Intelligence**: Uses Gemini to generate descriptions for extracted images within their original PDF context. Image descriptions are used to help the LLM "see" and describe extracted images.
-- **Hybrid Retrieval**: Stores both text and image metadata in Pinecone for semantic search. Image description are used to compute embeddings of the image for image retrieval. Both image description and the image itself are provided as context to the (multimodal) LLM.
+- **Hybrid Retrieval**: Stores both text and image metadata in Pinecone. Semantic search: Image description are used to compute embeddings of the image for image retrieval. Both image description and the image itself are provided as context to the (multimodal) LLM.
 - **Adaptive Language**: Automatically detects user query language and responds accordingly.
 - **Prompt Engineering**: 
     - **Persona**: The chatbot speaks as if it were César Manrique, the visionary artist and architect. It articulates its responses with the passion, conviction, and aesthetic sensitivity Manrique possessed in the 1960s and 70s, having recently returned to Lanzarote to transform it into a work of art.

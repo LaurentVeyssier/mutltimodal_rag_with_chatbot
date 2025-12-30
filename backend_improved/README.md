@@ -6,7 +6,7 @@ A FastAPI-powered Multimodal RAG Engine that bridges document intelligence with 
 
 - **Multimodal Ingestion**: Extracts text using `PyMuPDF` and renders page context to help the LLM "see" and describe extracted images.
 - **Smart Image Descriptions**: Batch-processes images through Google Gemini, providing the original PDF page as context for high-accuracy description generation.
-- **Multimodal retrieval**: Retrieved chunks of text and full-sized images are provided to the LLM as context. when an image-associated vector is retrieved, the original image is provided to the LLM in addition to its pre-processed description. The model can therefore "see" the image and "read" the text for an optimal use of the image as context. This allows the model to perfectly integrate an image as a visual element in its response.
+- **Multimodal retrieval**: Retrieved chunks of text and full-sized images are provided to the LLM as context. when an image-associated vector is retrieved, the original image is provided to the LLM in addition to its description. The model can therefore "see" the image and "read" the text for an optimal use of the image as context. This allows the model to perfectly integrate an image as a visual element in its response.
 - **Multi-tenant Topics**: Supports namespaces (topics) in Pinecone to separate different sets of documents.
 - **Automated Language Handling**: Uses `lingua` to detect query language, ensuring the LLM persona responds in the user's preferred language.
 - **Observability**: Fully instrumented with `Langfuse` and `GoogleGenAIInstrumentor` for tracing and quality monitoring.

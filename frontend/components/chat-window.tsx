@@ -209,20 +209,21 @@ export function ChatWindow({ selectedTopic, onTopicChange, topics }: ChatWindowP
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
-                                                        img: ({ node, ...props }) => {
-                                                            let src = props.src;
-                                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
-                                                            if (typeof src === 'string' && src.startsWith('/static')) {
-                                                                src = `${apiUrl}${src}`;
-                                                            }
-                                                            return (
-                                                                <img
-                                                                    {...props}
-                                                                    src={src}
-                                                                    className="rounded-md max-h-80 w-auto object-contain bg-black/5 my-4 border border-border shadow-sm"
-                                                                />
-                                                            );
-                                                        }
+                                                         img: ({ node, ...props }) => {
+                                                             let src = props.src;
+                                                             const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+                                                             if (typeof src === 'string' && !src.startsWith('http')) {
+                                                                 const normalizedPath = src.startsWith('/') ? src : `/${src}`;
+                                                                 src = `${apiUrl}${normalizedPath}`;
+                                                             }
+                                                             return (
+                                                                 <img
+                                                                     {...props}
+                                                                     src={src}
+                                                                     className="rounded-md max-h-80 w-auto object-contain bg-black/5 my-4 border border-border shadow-sm"
+                                                                 />
+                                                             );
+                                                         }
                                                     }}
                                                 >
                                                     {msg.content.replace(/<follow_up>[\s\S]*?<\/follow_up>/g, '').trim()}

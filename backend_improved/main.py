@@ -1,7 +1,6 @@
 import os
 import json
 import shutil
-import io
 from pathlib import Path
 from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -138,31 +137,6 @@ async def get_topics():
         return {"topics": topics}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/images/{filename}")
-async def get_image(filename: str):
-    """
-    Retrieve an image from GCS bucket.
-    
-    Args:
-        filename (str): The filename of the image to retrieve.
-    
-    Returns:
-        StreamingResponse: The image bytes streamed as an image/png.
-    """
-    try:
-        if not rag_engine.storage_client or not rag_engine.bucket:
-            raise HTTPException(status_code=500, detail="GCS client not configured")
-        
-        blob = rag_engine.bucket.blob(filename)
-        if not blob.exists():
-            raise HTTPException(status_code=404, detail="Image not found")
-        
-        img_bytes = blob.download_as_bytes()
-        return StreamingResponse(io.BytesIO(img_bytes), media_type="image/png")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 
 if __name__ == "__main__":

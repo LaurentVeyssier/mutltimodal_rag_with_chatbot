@@ -7,7 +7,7 @@ import base64
 import requests
 from PIL import Image
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from rich.console import Console
 from rich.markdown import Markdown
 import fitz  # PyMuPDF
@@ -387,46 +387,15 @@ class RAGEngine:
         )
 
     @observe(name="load_image")
-    def load_image(self, image_path: str) -> Optional[Image.Image]:
-        """
-        Load an image from a URL or from the GCS bucket using the authenticated client.
-
-        Args:
-            image_path (str): The URL or relative path of the image to load.
-
-        Returns:
-            Optional[Image.Image]: The loaded PIL Image object, or None if loading fails.
-        """
+    def load_image(self, image_path: str):
+        """Load an image from a URL"""
         try:
-            if not image_path:
-                return None
-
-            # 1. If it's a relative GCS image path or filename (e.g. "images/filename.png")
-            if image_path.startswith("images/") or not image_path.startswith("http"):
-                filename = image_path.split("/")[-1]
-                if self.storage_client and self.bucket:
-                    self.console.print(f"Loading image from GCS blob: {filename}", style="bold cyan")
-                    blob = self.bucket.blob(filename)
-                    img_bytes = blob.download_as_bytes()
-                    return Image.open(io.BytesIO(img_bytes))
-
-            # 2. If it's a full GCS HTTP URL (e.g. https://storage.googleapis.com/rag-assets-bucket/...)
             if image_path.startswith("http"):
-                if "storage.googleapis.com" in image_path and self.storage_client and self.bucket:
-                    parts = image_path.split(f"/{self.bucket_name}/")
-                    if len(parts) > 1:
-                        blob_name = parts[-1]
-                        self.console.print(f"Loading image from GCS blob: {blob_name}", style="bold cyan")
-                        blob = self.bucket.blob(blob_name)
-                        img_bytes = blob.download_as_bytes()
-                        return Image.open(io.BytesIO(img_bytes))
-                
-                # Otherwise fallback to raw HTTP GET
                 response = requests.get(image_path, stream=True)
                 response.raise_for_status()
                 return Image.open(response.raw)
-
-            return None
+            else:
+                return None
         except Exception as e:
             self.console.print(f"[red]Error loading image {image_path}: {e}[/red]")
             return None
@@ -588,14 +557,6 @@ class RAGEngine:
                 # Extract text content from metadata
                 content = match.metadata.get("text", "") or match.metadata.get("description", "")
                 
-                # If the image path is a GCS URL, transform it to a relative backend endpoint URL
-                # so the frontend can securely access it via our proxy endpoint.
-                if match.metadata.get("type") == "image":
-                    image_path = match.metadata.get("image_path", "")
-                    if image_path.startswith("https://storage.googleapis.com"):
-                        filename = image_path.split("/")[-1]
-                        match.metadata["image_path"] = f"images/{filename}"
-
                 item = {
                     "id": match.id,
                     "score": match.score,
